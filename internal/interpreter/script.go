@@ -5,13 +5,13 @@ import (
 )
 
 type Script struct {
-	inputRoutine Routine
+	inputRoutine memoizedPipeRoutine
 	inPipe       Pipe
 
-	outputRoutine Routine
+	outputRoutine memoizedPipeRoutine
 	outPipe       Pipe
 
-	middlewareRoutines []Routine
+	middlewareRoutines []memoizedPipeRoutine
 }
 
 // NewScript creates a new instance of Script with default values.
@@ -22,24 +22,25 @@ func NewScript(in, out Routine) *Script {
 	inPipe.Chain(outPipe)
 
 	return &Script{
-		inputRoutine: in,
+		inputRoutine: memoizedPipeRoutine{pipe: inPipe, routine: in},
 		inPipe:       inPipe,
 
-		outputRoutine: out,
+		outputRoutine: memoizedPipeRoutine{pipe: outPipe, routine: out},
 		outPipe:       outPipe,
 	}
 }
 
 func (s *Script) In(process Routine) *Script {
-	s.inputRoutine = process
-	s.inputRoutine.Pipe(s.inPipe)
+	s.inputRoutine = memoizedPipeRoutine{pipe: s.inPipe, routine: process}
+	//s.inputRoutine.Pipe(s.inPipe)
 
 	return s
 }
 
 func (s *Script) Out(process Routine) *Script {
-	s.outputRoutine = process
-	s.outputRoutine.Pipe(s.outPipe)
+	s.outputRoutine = memoizedPipeRoutine{pipe: s.outPipe, routine: process}
+	//s.outputRoutine = process
+	//s.outputRoutine.Pipe(s.outPipe)
 
 	return s
 }
@@ -47,11 +48,14 @@ func (s *Script) Out(process Routine) *Script {
 func (s *Script) Chain(r Routine) *Script {
 	stepPipe := NewChanPipe()
 
-	s.inPipe.Chain(stepPipe)
-	stepPipe.Chain(s.outPipe)
+	s.inputRoutine.pipe.Chain(stepPipe)
+	stepPipe.Chain(s.outputRoutine.pipe)
 
-	r.Pipe(stepPipe)
-	s.middlewareRoutines = append(s.middlewareRoutines, r)
+	//r.Pipe(stepPipe)
+	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
+		pipe:    stepPipe,
+		routine: r,
+	})
 
 	return s
 }
@@ -83,4 +87,13 @@ func (s *Script) Run(ctx context.Context) error {
 
 	// all routines should exit when context is cancelled
 	return nil
+}
+
+type memoizedPipeRoutine struct {
+	routine Routine
+	pipe    Pipe
+}
+
+func (m memoizedPipeRoutine) Run(ctx context.Context) error {
+	return m.routine.Run(ctx, m.pipe)
 }

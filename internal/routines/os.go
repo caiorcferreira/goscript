@@ -21,7 +21,9 @@ func (p *StdInRoutine) Pipe(pipe interpreter.Pipe) {
 	p.pipe = pipe
 }
 
-func (p *StdInRoutine) Run(ctx context.Context) error {
+func (p *StdInRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+	w := &stdinWriter{pipe: pipe}
+
 	go func() {
 		for {
 			time.Sleep(1 * time.Second) //todo: avoid busy waiting
@@ -30,7 +32,7 @@ func (p *StdInRoutine) Run(ctx context.Context) error {
 				return
 			default:
 				//todo: handle error
-				io.Copy(p, os.Stdin)
+				io.Copy(w, os.Stdin)
 			}
 		}
 	}()
@@ -38,30 +40,28 @@ func (p *StdInRoutine) Run(ctx context.Context) error {
 	return nil
 }
 
-func (p *StdInRoutine) Write(data []byte) (n int, err error) {
+type stdinWriter struct {
+	pipe interpreter.Pipe
+}
+
+func (p *stdinWriter) Write(data []byte) (n int, err error) {
 	p.pipe.Out() <- data
 	return len(data), nil
 }
 
-type StdOutRoutine struct {
-	pipe interpreter.Pipe
-}
+type StdOutRoutine struct{}
 
 func NewStdOutRoutine() *StdOutRoutine {
 	return &StdOutRoutine{}
 }
 
-func (p *StdOutRoutine) Pipe(pipe interpreter.Pipe) {
-	p.pipe = pipe
-}
-
-func (p *StdOutRoutine) Run(ctx context.Context) error {
+func (p *StdOutRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case data := <-p.pipe.In():
+			case data := <-pipe.In():
 				switch v := data.(type) {
 				case string:
 					os.Stdout.Write([]byte(v))

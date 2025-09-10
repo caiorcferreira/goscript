@@ -38,19 +38,14 @@ const (
 type FileRoutine struct {
 	path string
 	mode int
-	pipe interpreter.Pipe
 }
 
-func (f *FileRoutine) Pipe(pipe interpreter.Pipe) {
-	f.pipe = pipe
-}
-
-func (f *FileRoutine) Run(ctx context.Context) error {
+func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 	switch f.mode {
 	case modeRead:
-		return f.read(ctx, f.pipe)
+		return f.read(ctx, pipe)
 	case modeWrite:
-		return f.write(ctx, f.pipe)
+		return f.write(ctx, pipe)
 	}
 
 	return errors.New("invalid file mode")
