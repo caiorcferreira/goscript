@@ -52,73 +52,69 @@ func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 }
 
 func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
-	go func() {
-		fmt.Printf("reading file: %s\n", f.path)
-		defer func() {
-			fmt.Printf("finished reading file: %s\n", f.path)
-		}()
-
-		file, err := os.OpenFile(f.path, f.mode, 0)
-		if err != nil {
-			//return err
-			fmt.Printf("error opening file: %s\n", err)
-			panic(err) //todo: handle error properly
-		}
-
-		defer pipe.Close()
-		defer file.Close()
-
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			select {
-			case <-ctx.Done():
-				fmt.Println("file read: cancelled")
-				return
-			case pipe.Out() <- scanner.Text():
-				fmt.Println("file read: sent line")
-			}
-		}
+	fmt.Printf("reading file: %s\n", f.path)
+	defer func() {
+		fmt.Printf("finished reading file: %s\n", f.path)
 	}()
+
+	file, err := os.OpenFile(f.path, f.mode, 0)
+	if err != nil {
+		//return err
+		fmt.Printf("error opening file: %s\n", err)
+		panic(err) //todo: handle error properly
+	}
+
+	defer pipe.Close()
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			fmt.Println("file read: cancelled")
+			return ctx.Err()
+		case pipe.Out() <- scanner.Text():
+			fmt.Println("file read: sent line")
+		}
+	}
 
 	return nil
 }
 
 func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
-	go func() {
-		fmt.Printf("writing file: %s\n", f.path)
-		defer func() {
-			fmt.Printf("finished writing file: %s\n", f.path)
-		}()
+	fmt.Printf("writing file: %s\n", f.path)
+	defer func() {
+		fmt.Printf("finished writing file: %s\n", f.path)
+	}()
 
-		file, err := os.OpenFile(f.path, f.mode, 0644)
-		if err != nil {
-			//return err
-			fmt.Printf("error opening file: %s\n", err)
-			panic(err) //todo: handle error properly
-		}
+	file, err := os.OpenFile(f.path, f.mode, 0644)
+	if err != nil {
+		//return err
+		fmt.Printf("error opening file: %s\n", err)
+		panic(err) //todo: handle error properly
+	}
 
-		defer pipe.Close()
-		defer file.Close()
+	defer pipe.Close()
+	defer file.Close()
 
-		for {
-			select {
-			case <-ctx.Done():
-				fmt.Println("file write: cancelled")
-				return
-			case data := <-pipe.In():
-				fmt.Println("file write: recv line")
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("file write: cancelled")
+			return ctx.Err()
+		case data := <-pipe.In():
+			fmt.Println("file write: recv line")
 
-				switch v := data.(type) {
-				case string:
-					file.WriteString(v + "\n")
-				case []byte:
-					file.Write(v)
-				default:
-					fmt.Printf("file write: unknown type: %T\n", v)
-				}
+			switch v := data.(type) {
+			case string:
+				file.WriteString(v + "\n")
+			case []byte:
+				file.Write(v)
+			default:
+				fmt.Printf("file write: unknown type: %T\n", v)
 			}
 		}
-	}()
+	}
 
 	return nil
 }

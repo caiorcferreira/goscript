@@ -24,20 +24,16 @@ func (p *StdInRoutine) Pipe(pipe interpreter.Pipe) {
 func (p *StdInRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 	w := &stdinWriter{pipe: pipe}
 
-	go func() {
-		for {
-			time.Sleep(1 * time.Second) //todo: avoid busy waiting
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				//todo: handle error
-				io.Copy(w, os.Stdin)
-			}
+	for {
+		time.Sleep(1 * time.Second) //todo: avoid busy waiting
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			//todo: handle error
+			io.Copy(w, os.Stdin)
 		}
-	}()
-
-	return nil
+	}
 }
 
 type stdinWriter struct {
@@ -56,23 +52,19 @@ func NewStdOutRoutine() *StdOutRoutine {
 }
 
 func (p *StdOutRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case data := <-pipe.In():
-				switch v := data.(type) {
-				case string:
-					os.Stdout.Write([]byte(v))
-				case []byte:
-					os.Stdout.Write(v)
-				default:
-					fmt.Printf("stdout: unknown type: %T\n", data)
-				}
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case data := <-pipe.In():
+			switch v := data.(type) {
+			case string:
+				os.Stdout.Write([]byte(v))
+			case []byte:
+				os.Stdout.Write(v)
+			default:
+				fmt.Printf("stdout: unknown type: %T\n", data)
 			}
 		}
-	}()
-
-	return nil
+	}
 }

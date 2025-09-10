@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"context"
+	"fmt"
 )
 
 type Script struct {
@@ -65,22 +66,32 @@ func (s *Script) Run(ctx context.Context) error {
 	defer cancel()
 
 	// start routines in reverse order: output, middlewares, input
-	err := s.outputRoutine.Run(ctx)
-	if err != nil {
-		return err
-	}
+
+	go func() {
+		err := s.outputRoutine.Run(ctx)
+		if err != nil {
+			fmt.Printf("output routine error: %s\n", err)
+			cancel()
+		}
+	}()
 
 	for _, routine := range s.middlewareRoutines {
-		err := routine.Run(ctx)
-		if err != nil {
-			return err
-		}
+		go func() {
+			err := routine.Run(ctx)
+			if err != nil {
+				fmt.Printf("routine error: %s\n", err)
+				cancel()
+			}
+		}()
 	}
 
-	err = s.inputRoutine.Run(ctx)
-	if err != nil {
-		return err
-	}
+	go func() {
+		err := s.inputRoutine.Run(ctx)
+		if err != nil {
+			fmt.Printf("output routine error: %s\n", err)
+			cancel()
+		}
+	}()
 
 	// wait for input routine to finish
 	<-s.inPipe.Done()

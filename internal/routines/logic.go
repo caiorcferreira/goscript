@@ -14,22 +14,18 @@ func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
 }
 
 func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe) error {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case data := <-pipe.In():
-				// type assertion to T
-				val, ok := data.(T)
-				if !ok {
-					// handle type assertion failure, skip or log error
-					continue
-				}
-				pipe.Out() <- t.transform(val)
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case data := <-pipe.In():
+			// type assertion to T
+			val, ok := data.(T)
+			if !ok {
+				// handle type assertion failure, skip or log error
+				continue
 			}
+			pipe.Out() <- t.transform(val)
 		}
-	}()
-
-	return nil
+	}
 }
