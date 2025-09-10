@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/caiorcferreira/goscript"
+	"github.com/caiorcferreira/goscript/internal/routines"
 	"strings"
 )
 
@@ -12,9 +13,9 @@ func main() {
 	script := goscript.New()
 
 	script.
-		In(goscript.File("data/example.txt").Read()).
-		Chain(goscript.Transform(strings.ToUpper)).
-		Out(goscript.File("data/output.txt").Write())
+		In(routines.File("data/example.txt").Read()).
+		Chain(routines.Transform(strings.ToUpper)).
+		Out(routines.File("data/output.txt").Write())
 	//ExecForEach(goscript.HTTP().Get("https://httpbun.com/get?param={{.}}"))
 
 	ctx := context.Background()
