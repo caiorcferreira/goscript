@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/caiorcferreira/goscript"
+	"strings"
 )
 
 func main() {
@@ -12,6 +13,7 @@ func main() {
 
 	script.
 		In(goscript.File("data/example.txt").Read()).
+		Chain(goscript.Transform(strings.ToUpper)).
 		Out(goscript.File("data/output.txt").Write())
 	//ExecForEach(goscript.HTTP().Get("https://httpbun.com/get?param={{.}}"))
 

@@ -14,11 +14,13 @@ type Pipe interface {
 	In() chan any
 	Out() chan any
 	Done() <-chan struct{}
+	Chain(p Pipe)
 	io.Closer
 }
 
 type Routine interface {
-	Run(ctx context.Context, pipe Pipe) error
+	Run(ctx context.Context) error
+	Pipe(p Pipe)
 }
 
 type stdInRoutine struct {
@@ -29,9 +31,11 @@ func newStdInRoutine() *stdInRoutine {
 	return &stdInRoutine{}
 }
 
-func (p *stdInRoutine) Run(ctx context.Context, pipe Pipe) error {
+func (p *stdInRoutine) Pipe(pipe Pipe) {
 	p.pipe = pipe
+}
 
+func (p *stdInRoutine) Run(ctx context.Context) error {
 	go func() {
 		for {
 			time.Sleep(1 * time.Second) //todo: avoid busy waiting
@@ -54,21 +58,24 @@ func (p *stdInRoutine) Write(data []byte) (n int, err error) {
 }
 
 type stdOutRoutine struct {
-	in  chan any
-	out chan any
+	pipe Pipe
 }
 
 func newStdOutRoutine() *stdOutRoutine {
 	return &stdOutRoutine{}
 }
 
-func (p *stdOutRoutine) Run(ctx context.Context, pipe Pipe) error {
+func (p *stdOutRoutine) Pipe(pipe Pipe) {
+	p.pipe = pipe
+}
+
+func (p *stdOutRoutine) Run(ctx context.Context) error {
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case data := <-pipe.In():
+			case data := <-p.pipe.In():
 				switch v := data.(type) {
 				case string:
 					os.Stdout.Write([]byte(v))
@@ -85,24 +92,53 @@ func (p *stdOutRoutine) Run(ctx context.Context, pipe Pipe) error {
 }
 
 type Script struct {
-	inputRoutine  Routine
+	inputRoutine Routine
+	inPipe       Pipe
+
 	outputRoutine Routine
+	outPipe       Pipe
+
+	middlewareRoutines []Routine
 }
 
 func New() *Script {
+	inPipe := newChanPipe()
+	outPipe := newChanPipe()
+
+	inPipe.Chain(outPipe)
+
 	return &Script{
-		inputRoutine:  newStdInRoutine(),
+		inputRoutine: newStdInRoutine(),
+		inPipe:       inPipe,
+
 		outputRoutine: newStdOutRoutine(),
+		outPipe:       outPipe,
 	}
 }
 
 func (s *Script) In(process Routine) *Script {
 	s.inputRoutine = process
+	s.inputRoutine.Pipe(s.inPipe)
+
 	return s
 }
 
 func (s *Script) Out(process Routine) *Script {
 	s.outputRoutine = process
+	s.outputRoutine.Pipe(s.outPipe)
+
+	return s
+}
+
+func (s *Script) Chain(r Routine) *Script {
+	stepPipe := newChanPipe()
+
+	s.inPipe.Chain(stepPipe)
+	stepPipe.Chain(s.outPipe)
+
+	r.Pipe(stepPipe)
+	s.middlewareRoutines = append(s.middlewareRoutines, r)
+
 	return s
 }
 
@@ -110,23 +146,26 @@ func (s *Script) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	inPipe := newChanPipe()
-	outPipe := newChanPipe()
-
-	inPipe.Chain(outPipe)
-
-	err := s.inputRoutine.Run(ctx, inPipe)
+	// start routines in reverse order: output, middlewares, input
+	err := s.outputRoutine.Run(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = s.outputRoutine.Run(ctx, outPipe)
+	for _, routine := range s.middlewareRoutines {
+		err := routine.Run(ctx)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = s.inputRoutine.Run(ctx)
 	if err != nil {
 		return err
 	}
 
 	// wait for input routine to finish
-	<-inPipe.Done()
+	<-s.inPipe.Done()
 
 	// all routines should exit when context is cancelled
 	return nil
@@ -205,14 +244,19 @@ const (
 type FileRoutine struct {
 	path string
 	mode int
+	pipe Pipe
 }
 
-func (f *FileRoutine) Run(ctx context.Context, pipe Pipe) error {
+func (f *FileRoutine) Pipe(pipe Pipe) {
+	f.pipe = pipe
+}
+
+func (f *FileRoutine) Run(ctx context.Context) error {
 	switch f.mode {
 	case modeRead:
-		return f.read(ctx, pipe)
+		return f.read(ctx, f.pipe)
 	case modeWrite:
-		return f.write(ctx, pipe)
+		return f.write(ctx, f.pipe)
 	}
 
 	return errors.New("invalid file mode")
@@ -283,6 +327,40 @@ func (f *FileRoutine) write(ctx context.Context, pipe Pipe) error {
 				default:
 					fmt.Printf("file write: unknown type: %T\n", v)
 				}
+			}
+		}
+	}()
+
+	return nil
+}
+
+type TransformRoutine[T, V any] struct {
+	transform func(T) V
+	pipe      Pipe
+}
+
+func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
+	return &TransformRoutine[T, V]{transform: f}
+}
+
+func (t *TransformRoutine[T, V]) Pipe(pipe Pipe) {
+	t.pipe = pipe
+}
+
+func (t *TransformRoutine[T, V]) Run(ctx context.Context) error {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case data := <-t.pipe.In():
+				// type assertion to T
+				val, ok := data.(T)
+				if !ok {
+					// handle type assertion failure, skip or log error
+					continue
+				}
+				t.pipe.Out() <- t.transform(val)
 			}
 		}
 	}()
