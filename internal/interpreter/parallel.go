@@ -5,39 +5,24 @@ import (
 	"sync"
 )
 
-// ParallelOption defines a function that modifies ParallelConfig
-// for flexible configuration.
-type ParallelOption func(*ParallelConfig)
-
-// WithConcurrency sets the concurrency level for ParallelConfig.
-func WithConcurrency(concurrency int) ParallelOption {
-	return func(cfg *ParallelConfig) {
-		cfg.Concurrency = concurrency
-	}
-}
-
-type ParallelConfig struct {
-	Concurrency int
-}
-
 type Parallel struct {
-	routine Routine
-	config  ParallelConfig
+	routine        Routine
+	maxConcurrency int
 }
 
-func NewParallel(routine Routine, config ParallelConfig) *Parallel {
-	return &Parallel{
-		routine: routine,
-		config:  config,
+func NewParallel(routine Routine, maxConcurrency int) Parallel {
+	return Parallel{
+		routine:        routine,
+		maxConcurrency: maxConcurrency,
 	}
 }
 
-func (p *Parallel) Run(ctx context.Context, pipe Pipe) error {
+func (p Parallel) Run(ctx context.Context, pipe Pipe) error {
 	var wg sync.WaitGroup
 
-	wg.Add(p.config.Concurrency)
+	wg.Add(p.maxConcurrency)
 
-	for i := 0; i < p.config.Concurrency; i++ {
+	for i := 0; i < p.maxConcurrency; i++ {
 		go func() {
 			p.routine.Run(ctx, pipe)
 			wg.Done()
