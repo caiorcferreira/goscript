@@ -47,7 +47,7 @@ func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 	switch f.mode {
 	case modeRead:
 		return f.read(ctx, pipe)
-	case modeWrite:
+	case modeWrite, modeAppend:
 		return f.write(ctx, pipe)
 	}
 
