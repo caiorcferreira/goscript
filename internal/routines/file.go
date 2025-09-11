@@ -64,7 +64,11 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 		panic(err) //todo: handle error properly
 	}
 
-	defer pipe.Close()
+	//defer pipe.Close()
+	defer func() {
+		fmt.Printf("CLOSING FILE READ PIPE OUT\n")
+		close(pipe.Out())
+	}()
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
@@ -75,9 +79,6 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 		case <-ctx.Done():
 			fmt.Println("file read: cancelled")
 			return ctx.Err()
-		case <-pipe.Done():
-			fmt.Println("file read: pipe done")
-			return nil
 		case pipe.Out() <- text:
 			fmt.Printf("file read: sent line: %s\n", text)
 		}
@@ -101,24 +102,19 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 
 	defer file.Close()
 	defer pipe.Close()
+	defer func() {
+		fmt.Printf("CLOSING FILE WRITE PIPE OUT\n")
+		close(pipe.Out())
+	}()
 
-	for {
+	for msg := range pipe.In() {
 		select {
 		case <-ctx.Done():
 			fmt.Println("file write: cancelled")
-			return ctx.Err()
-		case <-pipe.Done():
-			fmt.Println("file write: pipe done")
-			return nil
-		case data, open := <-pipe.In():
-			if !open {
-				fmt.Printf("file write: pipe closed: %v\n", data)
-				//return nil
-			}
+		default:
+			fmt.Printf("file write: recv line: %v\n", msg)
 
-			fmt.Printf("file write: recv line: %v\n", data)
-
-			switch v := data.(type) {
+			switch v := msg.(type) {
 			case string:
 				file.WriteString(v + "\n")
 			case []byte:
@@ -128,6 +124,33 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 			}
 		}
 	}
+
+	//for {
+	//	select {
+	//	case <-ctx.Done():
+	//		fmt.Println("file write: cancelled")
+	//		return ctx.Err()
+	//	case <-pipe.Done():
+	//		fmt.Println("file write: pipe done")
+	//		return nil
+	//	case data, open := <-pipe.In():
+	//		if !open {
+	//			fmt.Printf("file write: pipe closed: %v\n", data)
+	//			//return nil
+	//		}
+	//
+	//		fmt.Printf("file write: recv line: %v\n", data)
+	//
+	//		switch v := data.(type) {
+	//		case string:
+	//			file.WriteString(v + "\n")
+	//		case []byte:
+	//			file.Write(v)
+	//		default:
+	//			fmt.Printf("file write: unknown type: %T\n", v)
+	//		}
+	//	}
+	//}
 
 	return nil
 }
