@@ -25,13 +25,14 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 		// type assertion to T
 		val, ok := data.(T)
 		if !ok {
-			// handle type assertion failure, skip or log error
+			//todo: log error
+			pipe.Out() <- data
 			continue
 		}
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil
 		case pipe.Out() <- t.transform(val):
 		}
 	}
