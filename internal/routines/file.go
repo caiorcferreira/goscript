@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 	"os"
+	"path/filepath"
 )
 
 func File(path string) FileRoutineBuilder {
@@ -89,7 +90,7 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 		fmt.Printf("finished writing file: %s\n", f.path)
 	}()
 
-	file, err := os.OpenFile(f.path, f.mode, 0644)
+	file, err := openWritingFile(f.path, f.mode)
 	if err != nil {
 		//return err
 		fmt.Printf("error opening file: %s\n", err)
@@ -118,4 +119,18 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 	}
 
 	return nil
+}
+
+func openWritingFile(path string, mode int) (*os.File, error) {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
+	file, err := os.OpenFile(path, mode, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s: %w", path, err)
+	}
+
+	return file, nil
 }
