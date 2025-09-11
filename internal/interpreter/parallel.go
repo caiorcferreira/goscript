@@ -33,7 +33,6 @@ func (p ParallelRoutine) Run(ctx context.Context, pipe Pipe) error {
 	subpipes := make([]*ChannelPipe, p.maxConcurrency)
 	for i := 0; i < p.maxConcurrency; i++ {
 		subpipes[i] = NewChanPipe()
-		//subpipes[i].SetInChan(pipe.In())
 	}
 
 	var wg sync.WaitGroup
@@ -96,38 +95,8 @@ func (p ParallelRoutine) Run(ctx context.Context, pipe Pipe) error {
 	for i := 0; i < p.maxConcurrency; i++ {
 		go func() {
 			p.routine.Run(ctx, subpipes[i])
-			//wg.Done()
 		}()
 	}
-
-	//go func() {
-	//	defer func() {
-	//		for _, sp := range subpipes {
-	//			sp.Close()
-	//		}
-	//	}()
-	//
-	//	for {
-	//		select {
-	//		case <-ctx.Done():
-	//			return
-	//		case <-pipe.Done():
-	//			return
-	//		default:
-	//			for _, sp := range subpipes {
-	//				select {
-	//				case data, open := <-sp.Out():
-	//					if !open {
-	//						continue
-	//					}
-	//					pipe.Out() <- data
-	//				default:
-	//					// no data available, move to the next subpipe
-	//				}
-	//			}
-	//		}
-	//	}
-	//}()
 
 	wg.Wait()
 

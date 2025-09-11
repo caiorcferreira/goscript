@@ -125,32 +125,5 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 		}
 	}
 
-	//for {
-	//	select {
-	//	case <-ctx.Done():
-	//		fmt.Println("file write: cancelled")
-	//		return ctx.Err()
-	//	case <-pipe.Done():
-	//		fmt.Println("file write: pipe done")
-	//		return nil
-	//	case data, open := <-pipe.In():
-	//		if !open {
-	//			fmt.Printf("file write: pipe closed: %v\n", data)
-	//			//return nil
-	//		}
-	//
-	//		fmt.Printf("file write: recv line: %v\n", data)
-	//
-	//		switch v := data.(type) {
-	//		case string:
-	//			file.WriteString(v + "\n")
-	//		case []byte:
-	//			file.Write(v)
-	//		default:
-	//			fmt.Printf("file write: unknown type: %T\n", v)
-	//		}
-	//	}
-	//}
-
 	return nil
 }
