@@ -55,11 +55,11 @@ func (p ParallelRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 			}
 		}()
 
-		send := func(pipe *interpreter.ChannelPipe, data any) bool {
+		send := func(destination *interpreter.ChannelPipe, data any) bool {
 			select {
 			case <-ctx.Done():
 				return false
-			case pipe.In() <- data:
+			case destination.In() <- data:
 				// data sent successfully
 				return true
 			default:
