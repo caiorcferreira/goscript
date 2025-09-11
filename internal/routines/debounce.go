@@ -25,7 +25,7 @@ func (p DebounceRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return nil
 		case pipe.Out() <- msg:
 		}
 	}

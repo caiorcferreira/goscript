@@ -196,9 +196,6 @@ func TestParallelRoutine_Run(t *testing.T) {
 		}()
 
 		go func() {
-			//defer cancel()
-			//defer close(pipe.In())
-
 			for i, data := range testData {
 				if i <= stopAfter {
 					pipe.In() <- data
