@@ -15,11 +15,7 @@ func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
 }
 
 func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe) error {
-	//defer pipe.Close()
-	defer func() {
-		fmt.Printf("CLOSING TRANSFORM PIPE OUT\n")
-		close(pipe.Out())
-	}()
+	defer pipe.Close()
 
 	for msg := range pipe.In() {
 		fmt.Printf("transform: received message: %v\n", msg)

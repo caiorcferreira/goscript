@@ -16,18 +16,8 @@ func Debounce(debounceTime time.Duration) DebounceRoutine {
 	}
 }
 
-func NewDebounce(routine Routine, debounceTime time.Duration) DebounceRoutine {
-	return DebounceRoutine{
-		routine:      routine,
-		debounceTime: debounceTime,
-	}
-}
-
 func (p DebounceRoutine) Run(ctx context.Context, pipe Pipe) error {
 	defer pipe.Close()
-	defer func() {
-		close(pipe.Out())
-	}()
 
 	for msg := range pipe.In() {
 		time.Sleep(p.debounceTime)

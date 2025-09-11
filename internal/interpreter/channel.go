@@ -54,7 +54,7 @@ func (c *ChannelPipe) RecACK() <-chan ACK {
 
 func (c *ChannelPipe) Close() error {
 	SafeClose(c.done)
-	//SafeClose(c.out)
+	SafeClose(c.out)
 
 	return nil
 }

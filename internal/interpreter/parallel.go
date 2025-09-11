@@ -17,18 +17,8 @@ func Parallel(r Routine, maxConcurrency int) ParallelRoutine {
 	}
 }
 
-func NewParallel(routine Routine, maxConcurrency int) ParallelRoutine {
-	return ParallelRoutine{
-		routine:        routine,
-		maxConcurrency: maxConcurrency,
-	}
-}
-
 func (p ParallelRoutine) Run(ctx context.Context, pipe Pipe) error {
 	defer pipe.Close()
-	defer func() {
-		close(pipe.Out())
-	}()
 
 	subpipes := make([]*ChannelPipe, p.maxConcurrency)
 	for i := 0; i < p.maxConcurrency; i++ {

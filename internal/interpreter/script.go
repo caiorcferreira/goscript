@@ -50,29 +50,7 @@ func (s *Script) Out(process Routine) *Script {
 	return s
 }
 
-func (s *Script) Chain(r Routine, opts ...ExecutionOption) *Script {
-	//r = ApplyExecutionOptions(r, opts...)
-
-	//for _, opt := range opts {
-	//	r = opt(r)
-	//
-	//	stepPipe := NewChanPipe()
-	//	previousPipe := s.previousPipe
-	//
-	//	previousPipe.Chain(stepPipe)
-	//	//stepPipe.Chain(s.outputRoutine.pipe)
-	//	s.previousPipe = stepPipe
-	//
-	//	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
-	//		pipe:    stepPipe,
-	//		routine: r,
-	//	})
-	//}
-
-	for _, opt := range opts {
-		r = opt(r)
-	}
-
+func (s *Script) Chain(r Routine) *Script {
 	stepPipe := NewChanPipe()
 	previousPipe := s.previousPipe
 
@@ -98,7 +76,6 @@ func (s *Script) Run(ctx context.Context) error {
 		err := s.outputRoutine.Run(ctx)
 		if err != nil {
 			fmt.Printf("output routine error: %s\n", err)
-			//cancel()
 		}
 	}()
 
@@ -107,7 +84,6 @@ func (s *Script) Run(ctx context.Context) error {
 			err := routine.Run(ctx)
 			if err != nil {
 				fmt.Printf("routine error: %s\n", err)
-				//cancel()
 			}
 		}()
 	}
@@ -116,7 +92,6 @@ func (s *Script) Run(ctx context.Context) error {
 		err := s.inputRoutine.Run(ctx)
 		if err != nil {
 			fmt.Printf("input routine error: %s\n", err)
-			//cancel()
 		}
 	}()
 

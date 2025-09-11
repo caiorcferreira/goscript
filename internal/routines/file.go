@@ -64,11 +64,7 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 		panic(err) //todo: handle error properly
 	}
 
-	//defer pipe.Close()
-	defer func() {
-		fmt.Printf("CLOSING FILE READ PIPE OUT\n")
-		close(pipe.Out())
-	}()
+	defer pipe.Close()
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
@@ -102,10 +98,6 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 
 	defer file.Close()
 	defer pipe.Close()
-	defer func() {
-		fmt.Printf("CLOSING FILE WRITE PIPE OUT\n")
-		close(pipe.Out())
-	}()
 
 	for msg := range pipe.In() {
 		select {
