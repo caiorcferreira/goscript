@@ -22,7 +22,7 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 	}()
 
 	for msg := range pipe.In() {
-		fmt.Printf("transform: received message of type %T\n", msg)
+		fmt.Printf("transform: received message: %v\n", msg)
 
 		data := msg
 
