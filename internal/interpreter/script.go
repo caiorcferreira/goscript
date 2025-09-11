@@ -52,10 +52,29 @@ func (s *Script) Chain(r Routine) *Script {
 	s.inputRoutine.pipe.Chain(stepPipe)
 	stepPipe.Chain(s.outputRoutine.pipe)
 
-	//r.Pipe(stepPipe)
 	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
 		pipe:    stepPipe,
 		routine: r,
+	})
+
+	return s
+}
+
+func (s *Script) Parallel(r Routine, opts ...ParallelOption) *Script {
+	stepPipe := NewChanPipe()
+
+	s.inputRoutine.pipe.Chain(stepPipe)
+	stepPipe.Chain(s.outputRoutine.pipe)
+
+	// Default config
+	cfg := ParallelConfig{Concurrency: 5}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
+		pipe:    stepPipe,
+		routine: NewParallel(r, cfg),
 	})
 
 	return s
