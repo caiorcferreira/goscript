@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+//todo: implement Routine interface for Script, so it can be nested with other Scripts
 type Script struct {
 	inputRoutine memoizedPipeRoutine
 	inPipe       Pipe

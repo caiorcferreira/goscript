@@ -5,32 +5,38 @@ import (
 	"time"
 )
 
-type Debounce struct {
+type DebounceRoutine struct {
 	routine      Routine
 	debounceTime time.Duration
 }
 
-func NewDebounce(routine Routine, debounceTime time.Duration) Debounce {
-	return Debounce{
+func Debounce(debounceTime time.Duration) DebounceRoutine {
+	return DebounceRoutine{
+		debounceTime: debounceTime,
+	}
+}
+
+func NewDebounce(routine Routine, debounceTime time.Duration) DebounceRoutine {
+	return DebounceRoutine{
 		routine:      routine,
 		debounceTime: debounceTime,
 	}
 }
 
-func (p Debounce) Run(ctx context.Context, pipe Pipe) error {
-	slowPipe := NewChanPipe()
-	slowPipe.SetOutChan(pipe.Out())
-
-	pipe.Chain(slowPipe)
+func (p DebounceRoutine) Run(ctx context.Context, pipe Pipe) error {
+	//slowPipe := NewChanPipe()
+	//slowPipe.SetOutChan(pipe.Out())
+	//
+	//pipe.Chain(slowPipe)
 	//slowPipe.Chain(pipe)
 
-	defer slowPipe.Close()
+	//defer slowPipe.Close()
 	defer pipe.Close()
 	defer func() {
 		close(pipe.Out())
 	}()
-
-	go p.routine.Run(ctx, slowPipe)
+	//
+	//go p.routine.Run(ctx, slowPipe)
 
 	for msg := range pipe.In() {
 		time.Sleep(p.debounceTime)

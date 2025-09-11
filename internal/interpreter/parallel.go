@@ -5,20 +5,30 @@ import (
 	"sync"
 )
 
-type Parallel struct {
+type ParallelRoutine struct {
 	routine        Routine
 	maxConcurrency int
 }
 
-func NewParallel(routine Routine, maxConcurrency int) Parallel {
-	return Parallel{
+func Parallel(r Routine, maxConcurrency int) ParallelRoutine {
+	return ParallelRoutine{
+		routine:        r,
+		maxConcurrency: maxConcurrency,
+	}
+}
+
+func NewParallel(routine Routine, maxConcurrency int) ParallelRoutine {
+	return ParallelRoutine{
 		routine:        routine,
 		maxConcurrency: maxConcurrency,
 	}
 }
 
-func (p Parallel) Run(ctx context.Context, pipe Pipe) error {
+func (p ParallelRoutine) Run(ctx context.Context, pipe Pipe) error {
 	defer pipe.Close()
+	defer func() {
+		close(pipe.Out())
+	}()
 
 	subpipes := make([]*ChannelPipe, p.maxConcurrency)
 	for i := 0; i < p.maxConcurrency; i++ {
@@ -29,11 +39,21 @@ func (p Parallel) Run(ctx context.Context, pipe Pipe) error {
 	var wg sync.WaitGroup
 	wg.Add(p.maxConcurrency)
 
-	// start worker goroutines
-	for i := 0; i < p.maxConcurrency; i++ {
+	// fan-in from subpipes to output
+	for _, sp := range subpipes {
 		go func() {
-			p.routine.Run(ctx, subpipes[i])
-			wg.Done()
+			// we need to wait until all subpipes are drained
+			defer func() {
+				wg.Done()
+			}()
+
+			for data := range sp.Out() {
+				select {
+				case <-ctx.Done():
+					return
+				case pipe.Out() <- data:
+				}
+			}
 		}()
 	}
 
@@ -72,21 +92,11 @@ func (p Parallel) Run(ctx context.Context, pipe Pipe) error {
 		}
 	}()
 
-	// fan-in from subpipes to output
-	for _, sp := range subpipes {
+	// start worker goroutines
+	for i := 0; i < p.maxConcurrency; i++ {
 		go func() {
-			//defer sp.Close()
-			//defer func() {
-			//	close(sp.Out())
-			//}()
-
-			for data := range sp.Out() {
-				select {
-				case <-ctx.Done():
-					return
-				case pipe.Out() <- data:
-				}
-			}
+			p.routine.Run(ctx, subpipes[i])
+			//wg.Done()
 		}()
 	}
 
