@@ -2,14 +2,17 @@ package routines_test
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 	"github.com/caiorcferreira/goscript/internal/routines"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -105,7 +108,7 @@ func TestFileRoutine_Read(t *testing.T) {
 
 		err = fileRoutine.Run(ctx, pipe)
 		assert.Error(t, err)
-		assert.Equal(t, context.Canceled, err)
+		assert.Contains(t, err.Error(), "context canceled")
 	})
 
 	t.Run("returns error for non-existent file", func(t *testing.T) {
@@ -430,10 +433,268 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		ctx := context.Background()
 		err := fileRoutine.Run(ctx, pipe)
 
-		// Reading a directory in Go typically succeeds but produces no scanner output
-		// Let's instead test with a file that has permission issues
+		// With codec strategy, error now comes from parse phase
 		if err != nil {
-			assert.Contains(t, err.Error(), "failed to open file for read")
+			assert.Contains(t, err.Error(), "failed to parse file with codec")
 		}
 	})
+}
+
+func TestFileRoutine_WithCodec(t *testing.T) {
+	t.Run("uses LineCodec by default", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.txt")
+
+		testContent := "line1\nline2\nline3"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).Read()
+
+		var results []string
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.(string))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		expectedLines := []string{"line1", "line2", "line3"}
+		assert.Equal(t, expectedLines, results)
+	})
+
+	t.Run("uses explicit LineCodec", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.txt")
+
+		testContent := "line1\nline2\nline3"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithLineCodec().Read()
+
+		var results []string
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.(string))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		expectedLines := []string{"line1", "line2", "line3"}
+		assert.Equal(t, expectedLines, results)
+	})
+
+	t.Run("uses CSVCodec", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.csv")
+
+		testContent := "name,age,city\nJohn,30,NYC\nJane,25,LA"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithCSVCodec().Read()
+
+		var results [][]string
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.([]string))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		require.Len(t, results, 3)
+		assert.Equal(t, []string{"name", "age", "city"}, results[0])
+		assert.Equal(t, []string{"John", "30", "NYC"}, results[1])
+		assert.Equal(t, []string{"Jane", "25", "LA"}, results[2])
+	})
+
+	t.Run("uses JSONCodec", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.json")
+
+		testContent := `[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]`
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithJSONCodec().Read()
+
+		var results []map[string]any
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.(map[string]any))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		require.Len(t, results, 2)
+		assert.Equal(t, "John", results[0]["name"])
+		assert.Equal(t, float64(30), results[0]["age"])
+		assert.Equal(t, "Jane", results[1]["name"])
+		assert.Equal(t, float64(25), results[1]["age"])
+	})
+
+	t.Run("uses BlobCodec", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.txt")
+
+		testContent := "line1\nline2\nline3"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithBlobCodec().Read()
+
+		var results []string
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.(string))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		require.Len(t, results, 1)
+		assert.Equal(t, testContent, results[0])
+	})
+
+	t.Run("uses custom codec", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.txt")
+
+		testContent := "word1 word2 word3"
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		// Create a custom codec that splits on spaces
+		customCodec := &spaceCodec{}
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithCodec(customCodec).Read()
+
+		var results []string
+		var wg sync.WaitGroup
+		wg.Add(1)
+
+		go func() {
+			defer wg.Done()
+			for msg := range pipe.Out() {
+				results = append(results, msg.Data.(string))
+			}
+		}()
+
+		ctx := context.Background()
+		go func() {
+			err := fileRoutine.Run(ctx, pipe)
+			assert.NoError(t, err)
+		}()
+
+		wg.Wait()
+
+		expectedWords := []string{"word1", "word2", "word3"}
+		assert.Equal(t, expectedWords, results)
+	})
+
+	t.Run("handles codec parse error", func(t *testing.T) {
+		tempDir := t.TempDir()
+		testFile := filepath.Join(tempDir, "test.json")
+
+		testContent := `{"invalid": json}`
+		err := os.WriteFile(testFile, []byte(testContent), 0644)
+		require.NoError(t, err)
+
+		pipe := interpreter.NewChanPipe()
+		fileRoutine := routines.File(testFile).WithJSONCodec().Read()
+
+		ctx := context.Background()
+		err = fileRoutine.Run(ctx, pipe)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse file with codec")
+	})
+}
+
+// Custom codec for testing that splits content on spaces
+type spaceCodec struct{}
+
+func (c *spaceCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+
+	words := strings.Fields(string(data))
+
+	for _, word := range words {
+		msg := interpreter.Msg{
+			ID:   uuid.NewString(),
+			Data: word,
+		}
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case pipe.Out() <- msg:
+		}
+	}
+
+	return nil
 }
