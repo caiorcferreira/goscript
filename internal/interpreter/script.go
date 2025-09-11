@@ -2,10 +2,10 @@ package interpreter
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 )
 
-//todo: implement Routine interface for Script, so it can be nested with other Scripts
+// todo: implement Routine interface for Script, so it can be nested with other Scripts
 type Script struct {
 	inputRoutine memoizedPipeRoutine
 	inPipe       Pipe
@@ -75,7 +75,7 @@ func (s *Script) Run(ctx context.Context) error {
 	go func() {
 		err := s.outputRoutine.Run(ctx)
 		if err != nil {
-			fmt.Printf("output routine error: %s\n", err)
+			slog.Error("output routine error", "error", err)
 		}
 	}()
 
@@ -83,7 +83,7 @@ func (s *Script) Run(ctx context.Context) error {
 		go func() {
 			err := routine.Run(ctx)
 			if err != nil {
-				fmt.Printf("routine error: %s\n", err)
+				slog.Error("routine error", "error", err)
 			}
 		}()
 	}
@@ -91,7 +91,7 @@ func (s *Script) Run(ctx context.Context) error {
 	go func() {
 		err := s.inputRoutine.Run(ctx)
 		if err != nil {
-			fmt.Printf("input routine error: %s\n", err)
+			slog.Error("input routine error", "error", err)
 		}
 	}()
 

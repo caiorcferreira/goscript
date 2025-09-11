@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 	"io"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -67,7 +68,7 @@ func (p *StdOutRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 			case []byte:
 				os.Stdout.Write(v)
 			default:
-				fmt.Printf("stdout: unknown type: %T\n", msg.Data)
+				slog.Warn("stdout unknown type", "type", fmt.Sprintf("%T", msg.Data))
 			}
 		}
 	}

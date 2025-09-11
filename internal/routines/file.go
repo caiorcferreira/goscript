@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 	"github.com/google/uuid"
+	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -54,9 +55,9 @@ func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 }
 
 func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
-	fmt.Printf("reading file: %s\n", f.path)
+	slog.Info("reading file", "path", f.path)
 	defer func() {
-		fmt.Printf("finished reading file: %s\n", f.path)
+		slog.Info("finished reading file", "path", f.path)
 	}()
 
 	file, err := os.OpenFile(f.path, f.mode, 0)
@@ -77,10 +78,10 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 
 		select {
 		case <-ctx.Done():
-			fmt.Println("file read: cancelled")
+			slog.Info("file read cancelled")
 			return ctx.Err()
 		case pipe.Out() <- msg:
-			fmt.Printf("file read: sent line: %s\n", text)
+			slog.Debug("file read sent line", "text", text)
 		}
 	}
 
@@ -88,9 +89,9 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 }
 
 func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
-	fmt.Printf("writing file: %s\n", f.path)
+	slog.Info("writing file", "path", f.path)
 	defer func() {
-		fmt.Printf("finished writing file: %s\n", f.path)
+		slog.Info("finished writing file", "path", f.path)
 	}()
 
 	file, err := openWritingFile(f.path, f.mode)
@@ -104,9 +105,9 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 	for msg := range pipe.In() {
 		select {
 		case <-ctx.Done():
-			fmt.Println("file write: cancelled")
+			slog.Info("file write cancelled")
 		default:
-			fmt.Printf("file write: recv line: %v\n", msg)
+			slog.Debug("file write received line", "msg", msg)
 
 			switch v := msg.Data.(type) {
 			case string:
@@ -114,7 +115,7 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 			case []byte:
 				file.Write(v)
 			default:
-				fmt.Printf("file write: unknown type: %T\n", v)
+				slog.Warn("file write unknown type", "type", fmt.Sprintf("%T", v))
 			}
 		}
 	}

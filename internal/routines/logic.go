@@ -2,8 +2,8 @@ package routines
 
 import (
 	"context"
-	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"log/slog"
 )
 
 type TransformRoutine[T, V any] struct {
@@ -18,7 +18,7 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 	defer pipe.Close()
 
 	for msg := range pipe.In() {
-		fmt.Printf("transform: received message: %v\n", msg)
+		slog.Debug("transform received message", "msg", msg)
 
 		// type assertion to T
 		val, ok := msg.Data.(T)
