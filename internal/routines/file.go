@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/google/uuid"
 	"os"
 	"path/filepath"
 )
@@ -60,9 +61,7 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 
 	file, err := os.OpenFile(f.path, f.mode, 0)
 	if err != nil {
-		//return err
-		fmt.Printf("error opening file: %s\n", err)
-		panic(err) //todo: handle error properly
+		return fmt.Errorf("failed to open file for read: %w", err)
 	}
 
 	defer pipe.Close()
@@ -72,7 +71,7 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 	for scanner.Scan() {
 		text := scanner.Text()
 		msg := interpreter.Msg{
-			ID:   "",
+			ID:   uuid.NewString(),
 			Data: text,
 		}
 
@@ -96,9 +95,7 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 
 	file, err := openWritingFile(f.path, f.mode)
 	if err != nil {
-		//return err
-		fmt.Printf("error opening file: %s\n", err)
-		panic(err) //todo: handle error properly
+		return fmt.Errorf("failed to open file for write: %w", err)
 	}
 
 	defer file.Close()
