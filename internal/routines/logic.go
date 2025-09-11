@@ -2,6 +2,7 @@ package routines
 
 import (
 	"context"
+	"fmt"
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 )
 
@@ -20,6 +21,9 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
+		case <-pipe.Done():
+			fmt.Println("transform: pipe done")
+			return nil
 		case data, open := <-pipe.In():
 			if !open {
 				return nil

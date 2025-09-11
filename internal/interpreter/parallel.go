@@ -27,6 +27,12 @@ func (p Parallel) Run(ctx context.Context, pipe Pipe) error {
 	}
 
 	go func() {
+		defer func() {
+			for _, sp := range subpipes {
+				sp.Close()
+			}
+		}()
+
 		for {
 			select {
 			case <-ctx.Done():

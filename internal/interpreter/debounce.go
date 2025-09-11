@@ -21,6 +21,9 @@ func (p Debounce) Run(ctx context.Context, pipe Pipe) error {
 	slowPipe := NewChanPipe()
 	slowPipe.SetOutChan(pipe.Out())
 
+	defer slowPipe.Close()
+	defer pipe.Close()
+
 	go p.routine.Run(ctx, slowPipe)
 
 	for {
@@ -31,11 +34,14 @@ func (p Debounce) Run(ctx context.Context, pipe Pipe) error {
 			return nil
 		case msg, open := <-pipe.In():
 			if !open {
-				return nil
+				continue
+				//return nil
 			}
 
 			time.Sleep(p.debounceTime)
 			slowPipe.In() <- msg
+		default:
+			// no data available
 		}
 	}
 }

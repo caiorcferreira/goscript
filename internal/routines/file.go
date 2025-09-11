@@ -75,6 +75,9 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 		case <-ctx.Done():
 			fmt.Println("file read: cancelled")
 			return ctx.Err()
+		case <-pipe.Done():
+			fmt.Println("file read: pipe done")
+			return nil
 		case pipe.Out() <- text:
 			fmt.Printf("file read: sent line: %s\n", text)
 		}
@@ -104,10 +107,13 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 		case <-ctx.Done():
 			fmt.Println("file write: cancelled")
 			return ctx.Err()
+		case <-pipe.Done():
+			fmt.Println("file write: pipe done")
+			return nil
 		case data, open := <-pipe.In():
 			if !open {
 				fmt.Printf("file write: pipe closed: %v\n", data)
-				return nil
+				//return nil
 			}
 
 			fmt.Printf("file write: recv line: %v\n", data)
