@@ -11,8 +11,8 @@ type Msg struct {
 }
 
 type Pipe interface {
-	In() chan any
-	Out() chan any
+	In() chan Msg
+	Out() chan Msg
 	Done() <-chan struct{}
 	Chain(p Pipe)
 	io.Closer

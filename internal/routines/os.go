@@ -41,7 +41,11 @@ type stdinWriter struct {
 }
 
 func (p *stdinWriter) Write(data []byte) (n int, err error) {
-	p.pipe.Out() <- data
+	msg := interpreter.Msg{
+		ID:   "",
+		Data: data,
+	}
+	p.pipe.Out() <- msg
 	return len(data), nil
 }
 
@@ -56,14 +60,14 @@ func (p *StdOutRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case data := <-pipe.In():
-			switch v := data.(type) {
+		case msg := <-pipe.In():
+			switch v := msg.Data.(type) {
 			case string:
 				os.Stdout.Write([]byte(v))
 			case []byte:
 				os.Stdout.Write(v)
 			default:
-				fmt.Printf("stdout: unknown type: %T\n", data)
+				fmt.Printf("stdout: unknown type: %T\n", msg.Data)
 			}
 		}
 	}

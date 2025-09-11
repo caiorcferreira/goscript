@@ -34,7 +34,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 		var timestamps []time.Time
 
 		go func() {
@@ -91,7 +91,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -134,7 +134,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -182,7 +182,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -230,7 +230,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -275,7 +275,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -323,7 +323,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -372,7 +372,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -423,7 +423,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 		var mu sync.Mutex
 
 		go func() {

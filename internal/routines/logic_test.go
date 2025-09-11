@@ -39,7 +39,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -55,7 +55,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 
 		expectedResults := make([]int, len(testData))
 		for i, data := range testData {
-			expectedResults[i] = data.(int) * 2
+			expectedResults[i] = data.Data.(int) * 2
 		}
 
 		assert.Len(t, results, len(testData))
@@ -87,7 +87,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(string))
+				results = append(results, result.Data.(string))
 			}
 		}()
 
@@ -132,7 +132,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -170,7 +170,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -208,7 +208,15 @@ func TestTransformRoutine_Run(t *testing.T) {
 		pipe := interpreter.NewChanPipe()
 
 		// Mix different types - ints should be transformed, others passed through
-		mixedData := []any{1, "string", 2, 3.14, 3, true, 4}
+		mixedData := []interpreter.Msg{
+			{ID: "", Data: 1},
+			{ID: "", Data: "string"},
+			{ID: "", Data: 2},
+			{ID: "", Data: 3.14},
+			{ID: "", Data: 3},
+			{ID: "", Data: true},
+			{ID: "", Data: 4},
+		}
 
 		go func() {
 			for _, data := range mixedData {
@@ -220,7 +228,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -241,7 +249,15 @@ func TestTransformRoutine_Run(t *testing.T) {
 		wg.Wait()
 
 		// Integers should be transformed, non-integers passed through unchanged
-		expectedResults := []any{2, "string", 4, 3.14, 6, true, 8}
+		expectedResults := []interpreter.Msg{
+			{ID: "", Data: 2},
+			{ID: "", Data: "string"},
+			{ID: "", Data: 4},
+			{ID: "", Data: 3.14},
+			{ID: "", Data: 6},
+			{ID: "", Data: true},
+			{ID: "", Data: 8},
+		}
 
 		assert.Len(t, results, len(mixedData))
 		assert.ElementsMatch(t, expectedResults, results)
@@ -255,7 +271,12 @@ func TestTransformRoutine_Run(t *testing.T) {
 		pipe := interpreter.NewChanPipe()
 
 		// Only non-int types - all should be passed through unchanged
-		nonIntData := []any{"hello", 3.14, true, []int{1, 2, 3}}
+		nonIntData := []interpreter.Msg{
+			{ID: "", Data: "hello"},
+			{ID: "", Data: 3.14},
+			{ID: "", Data: true},
+			{ID: "", Data: []int{1, 2, 3}},
+		}
 
 		go func() {
 			for _, data := range nonIntData {
@@ -267,7 +288,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []any
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -317,7 +338,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -332,7 +353,12 @@ func TestTransformRoutine_Run(t *testing.T) {
 		wg.Wait()
 
 		assert.Len(t, results, len(testData))
-		assert.ElementsMatch(t, testData, results)
+		// Convert testData to ints for comparison
+		testDataInts := make([]int, len(testData))
+		for i, t := range testData {
+			testDataInts[i] = t.Data.(int)
+		}
+		assert.ElementsMatch(t, testDataInts, results)
 
 		// Verify pipe is closed
 		_, ok := <-pipe.Out()
@@ -364,7 +390,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -407,7 +433,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -425,7 +451,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 
 		// Verify order is preserved and transformation is applied
 		for i, expected := range testData {
-			assert.Equal(t, expected.(int)+1, results[i], "Message at index %d should maintain order and be transformed", i)
+			assert.Equal(t, expected.Data.(int)+1, results[i], "Message at index %d should maintain order and be transformed", i)
 		}
 	})
 
@@ -465,7 +491,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(Result))
+				results = append(results, result.Data.(Result))
 			}
 		}()
 
@@ -518,7 +544,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 
 			for result := range pipe.Out() {
 				mu.Lock()
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 				mu.Unlock()
 			}
 		}()

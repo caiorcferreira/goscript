@@ -1,16 +1,16 @@
 package interpreter
 
 type ChannelPipe struct {
-	in  chan any
-	out chan any
+	in  chan Msg
+	out chan Msg
 
 	done chan struct{}
 }
 
 func NewChanPipe() *ChannelPipe {
 	return &ChannelPipe{
-		in:   make(chan any, 1),
-		out:  make(chan any, 1),
+		in:   make(chan Msg, 1),
+		out:  make(chan Msg, 1),
 		done: make(chan struct{}),
 	}
 }
@@ -19,19 +19,19 @@ func (c *ChannelPipe) Done() <-chan struct{} {
 	return c.done
 }
 
-func (c *ChannelPipe) In() chan any {
+func (c *ChannelPipe) In() chan Msg {
 	return c.in
 }
 
-func (c *ChannelPipe) SetInChan(cin chan any) {
+func (c *ChannelPipe) SetInChan(cin chan Msg) {
 	c.in = cin
 }
 
-func (c *ChannelPipe) Out() chan any {
+func (c *ChannelPipe) Out() chan Msg {
 	return c.out
 }
 
-func (c *ChannelPipe) SetOutChan(cout chan any) {
+func (c *ChannelPipe) SetOutChan(cout chan Msg) {
 	c.out = cout
 }
 

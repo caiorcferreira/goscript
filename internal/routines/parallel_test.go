@@ -35,7 +35,7 @@ func (m *mockRoutine) getCallCount() int32 {
 func TestParallelRoutine_Run(t *testing.T) {
 	t.Run("processes data with correct concurrency", func(t *testing.T) {
 		maxConcurrency := 3
-		processedData := make([]interface{}, 0)
+		processedData := make([]interpreter.Msg, 0)
 		var mu sync.Mutex
 
 		mockR := &mockRoutine{
@@ -69,7 +69,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -124,7 +124,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -184,7 +184,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			defer wg.Done()
 
 			for result := range pipe.Out() {
-				results = append(results, result.(int))
+				results = append(results, result.Data.(int))
 			}
 		}()
 
@@ -240,7 +240,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -308,7 +308,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -367,7 +367,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -435,7 +435,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -498,7 +498,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interface{}
+		var results []interpreter.Msg
 
 		go func() {
 			defer wg.Done()
@@ -525,10 +525,13 @@ func TestParallelRoutine_Run(t *testing.T) {
 	})
 }
 
-func generateTestMsgs(start, size int) []any {
-	testData := make([]any, 0, size)
+func generateTestMsgs(start, size int) []interpreter.Msg {
+	testData := make([]interpreter.Msg, 0, size)
 	for i := start; i < start+size; i++ {
-		testData = append(testData, i)
+		testData = append(testData, interpreter.Msg{
+			ID:   "",
+			Data: i,
+		})
 	}
 
 	return testData

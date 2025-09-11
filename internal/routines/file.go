@@ -71,12 +71,16 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		text := scanner.Text()
+		msg := interpreter.Msg{
+			ID:   "",
+			Data: text,
+		}
 
 		select {
 		case <-ctx.Done():
 			fmt.Println("file read: cancelled")
 			return ctx.Err()
-		case pipe.Out() <- text:
+		case pipe.Out() <- msg:
 			fmt.Printf("file read: sent line: %s\n", text)
 		}
 	}
@@ -107,7 +111,7 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 		default:
 			fmt.Printf("file write: recv line: %v\n", msg)
 
-			switch v := msg.(type) {
+			switch v := msg.Data.(type) {
 			case string:
 				file.WriteString(v + "\n")
 			case []byte:

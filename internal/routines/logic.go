@@ -20,20 +20,23 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 	for msg := range pipe.In() {
 		fmt.Printf("transform: received message: %v\n", msg)
 
-		data := msg
-
 		// type assertion to T
-		val, ok := data.(T)
+		val, ok := msg.Data.(T)
 		if !ok {
 			//todo: log error
-			pipe.Out() <- data
+			pipe.Out() <- msg
 			continue
+		}
+
+		transformedMsg := interpreter.Msg{
+			ID:   msg.ID,
+			Data: t.transform(val),
 		}
 
 		select {
 		case <-ctx.Done():
 			return nil
-		case pipe.Out() <- t.transform(val):
+		case pipe.Out() <- transformedMsg:
 		}
 	}
 
