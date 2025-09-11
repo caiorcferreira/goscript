@@ -13,6 +13,7 @@ type Script struct {
 	outPipe       Pipe
 
 	middlewareRoutines []memoizedPipeRoutine
+	previousPipe       Pipe
 }
 
 // NewScript creates a new instance of Script with default values.
@@ -28,6 +29,8 @@ func NewScript(in, out Routine) *Script {
 
 		outputRoutine: memoizedPipeRoutine{pipe: outPipe, routine: out},
 		outPipe:       outPipe,
+
+		previousPipe: inPipe,
 	}
 }
 
@@ -47,12 +50,33 @@ func (s *Script) Out(process Routine) *Script {
 }
 
 func (s *Script) Chain(r Routine, opts ...ExecutionOption) *Script {
-	r = ApplyExecutionOptions(r, opts...)
+	//r = ApplyExecutionOptions(r, opts...)
+
+	//for _, opt := range opts {
+	//	r = opt(r)
+	//
+	//	stepPipe := NewChanPipe()
+	//	previousPipe := s.previousPipe
+	//
+	//	previousPipe.Chain(stepPipe)
+	//	//stepPipe.Chain(s.outputRoutine.pipe)
+	//	s.previousPipe = stepPipe
+	//
+	//	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
+	//		pipe:    stepPipe,
+	//		routine: r,
+	//	})
+	//}
+
+	for _, opt := range opts {
+		r = opt(r)
+	}
 
 	stepPipe := NewChanPipe()
+	previousPipe := s.previousPipe
 
-	s.inputRoutine.pipe.Chain(stepPipe)
-	stepPipe.Chain(s.outputRoutine.pipe)
+	previousPipe.Chain(stepPipe)
+	s.previousPipe = stepPipe
 
 	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
 		pipe:    stepPipe,
@@ -66,13 +90,14 @@ func (s *Script) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// start routines in reverse order: output, middlewares, input
+	s.previousPipe.Chain(s.outputRoutine.pipe)
 
+	// start routines in reverse order: output, middlewares, input
 	go func() {
 		err := s.outputRoutine.Run(ctx)
 		if err != nil {
 			fmt.Printf("output routine error: %s\n", err)
-			cancel()
+			//cancel()
 		}
 	}()
 
@@ -81,7 +106,7 @@ func (s *Script) Run(ctx context.Context) error {
 			err := routine.Run(ctx)
 			if err != nil {
 				fmt.Printf("routine error: %s\n", err)
-				cancel()
+				//cancel()
 			}
 		}()
 	}
@@ -89,13 +114,13 @@ func (s *Script) Run(ctx context.Context) error {
 	go func() {
 		err := s.inputRoutine.Run(ctx)
 		if err != nil {
-			fmt.Printf("output routine error: %s\n", err)
-			cancel()
+			fmt.Printf("input routine error: %s\n", err)
+			//cancel()
 		}
 	}()
 
 	// wait for input routine to finish
-	<-s.inPipe.Done()
+	<-s.outPipe.Done()
 
 	// all routines should exit when context is cancelled
 	return nil

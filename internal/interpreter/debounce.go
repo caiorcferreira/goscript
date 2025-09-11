@@ -18,15 +18,24 @@ func NewDebounce(routine Routine, debounceTime time.Duration) Debounce {
 }
 
 func (p Debounce) Run(ctx context.Context, pipe Pipe) error {
+	slowPipe := NewChanPipe()
+	slowPipe.SetOutChan(pipe.Out())
+
+	go p.routine.Run(ctx, slowPipe)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-pipe.Done():
 			return nil
-		case msg := <-pipe.In():
+		case msg, open := <-pipe.In():
+			if !open {
+				return nil
+			}
+
 			time.Sleep(p.debounceTime)
-			pipe.Out() <- msg
+			slowPipe.In() <- msg
 		}
 	}
 }

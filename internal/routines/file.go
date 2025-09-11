@@ -69,12 +69,14 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+		text := scanner.Text()
+
 		select {
 		case <-ctx.Done():
 			fmt.Println("file read: cancelled")
 			return ctx.Err()
-		case pipe.Out() <- scanner.Text():
-			fmt.Println("file read: sent line")
+		case pipe.Out() <- text:
+			fmt.Printf("file read: sent line: %s\n", text)
 		}
 	}
 
@@ -94,16 +96,21 @@ func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
 		panic(err) //todo: handle error properly
 	}
 
-	defer pipe.Close()
 	defer file.Close()
+	defer pipe.Close()
 
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Println("file write: cancelled")
 			return ctx.Err()
-		case data := <-pipe.In():
-			fmt.Println("file write: recv line")
+		case data, open := <-pipe.In():
+			if !open {
+				fmt.Printf("file write: pipe closed: %v\n", data)
+				return nil
+			}
+
+			fmt.Printf("file write: recv line: %v\n", data)
 
 			switch v := data.(type) {
 			case string:
