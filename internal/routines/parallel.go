@@ -55,26 +55,31 @@ func (p ParallelRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 			}
 		}()
 
-		send := func(destination *interpreter.ChannelPipe, data any) bool {
-			select {
-			case <-ctx.Done():
-				return false
-			case destination.In() <- data:
-				// data sent successfully
-				return true
-			default:
-				return false
-			}
-		}
+		roundRobinIndex := 0
 
 		for data := range pipe.In() {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				// send data to the first available subpipe
-				for _, sp := range subpipes {
-					if send(sp, data) {
+				// trie to send msg to subpipe at roundRobinIndex
+				// if it fails, try the next one in round-robin fashion
+				// it will keep trying until it succeeds
+				for {
+					sent := false
+					select {
+					case <-ctx.Done():
+						return
+					case subpipes[roundRobinIndex].In() <- data:
+						// data sent successfully
+						sent = true
+					default:
+						sent = false
+					}
+
+					roundRobinIndex = (roundRobinIndex + 1) % p.maxConcurrency
+
+					if sent {
 						break
 					}
 				}
