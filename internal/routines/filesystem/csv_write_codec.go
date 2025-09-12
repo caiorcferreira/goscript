@@ -11,6 +11,7 @@ import (
 // CSVWriteCodec writes messages as CSV records to a writer
 type CSVWriteCodec struct {
 	Separator rune
+	Headers   []string
 }
 
 // Ensure CSVWriteCodec implements WriteCodec
@@ -39,26 +40,42 @@ func (c *CSVWriteCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer i
 		case <-ctx.Done():
 			return nil
 		default:
-			switch v := msg.Data.(type) {
-			case []string:
-				if err := csvWriter.Write(v); err != nil {
-					return err
-				}
-			case string:
-				// Split string by separator and write as CSV record
-				record := []string{v}
-				if err := csvWriter.Write(record); err != nil {
-					return err
-				}
-			default:
-				// Convert to string and write as single field
-				record := []string{fmt.Sprintf("%v", v)}
-				if err := csvWriter.Write(record); err != nil {
-					return err
-				}
+			row := c.castDataToCSVRow(msg.Data)
+			if err := csvWriter.Write(row); err != nil {
+				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func (c *CSVWriteCodec) castDataToCSVRow(data any) []string {
+	switch v := data.(type) {
+	case []string:
+		return v
+	case string:
+		return []string{v}
+	case map[string]any:
+		values := make([]string, 0, len(c.Headers))
+		for _, header := range c.Headers {
+			if val, ok := v[header]; ok {
+				values = append(values, fmt.Sprintf("%v", val))
+			} else {
+				values = append(values, "")
+			}
+		}
+
+		return values
+	case []any:
+		values := make([]string, len(v))
+		for i, item := range v {
+			values[i] = fmt.Sprintf("%v", item)
+		}
+
+		return values
+	default:
+		// Convert to string and write as single field
+		return []string{fmt.Sprintf("%v", v)}
+	}
 }

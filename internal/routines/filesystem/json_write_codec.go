@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"io"
+	"log/slog"
 )
 
 // JSONWriteCodec writes messages as JSON to a writer
@@ -88,6 +89,15 @@ func (c *JSONWriteCodec) encodeJSONLines(ctx context.Context, pipe pipeline.Pipe
 func (c *JSONWriteCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
 	var messages []any
 
+	// Ensure we write the JSON array at the end
+	defer func() {
+		encoder := json.NewEncoder(writer)
+		err := encoder.Encode(messages)
+		if err != nil {
+			slog.Error("failed to encode JSON array", "error", err)
+		}
+	}()
+
 	// Collect all messages first
 	for msg := range pipe.In() {
 		select {
@@ -98,7 +108,5 @@ func (c *JSONWriteCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe
 		}
 	}
 
-	// Write as JSON array
-	encoder := json.NewEncoder(writer)
-	return encoder.Encode(messages)
+	return nil
 }
