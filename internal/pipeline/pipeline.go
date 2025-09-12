@@ -7,14 +7,13 @@ import (
 
 // todo: implement Routine interface for Pipeline, so it can be nested with other Pipeline
 type Pipeline struct {
-	inputRoutine memoizedPipeRoutine
-	inPipe       Pipe
-
+	inputRoutine  memoizedPipeRoutine
 	outputRoutine memoizedPipeRoutine
-	outPipe       Pipe
 
 	middlewareRoutines []memoizedPipeRoutine
 	previousPipe       Pipe
+
+	routines []Routine
 }
 
 // New creates a new instance of Pipeline with default values.
@@ -25,24 +24,35 @@ func New(in, out Routine) *Pipeline {
 	inPipe.Chain(outPipe)
 
 	return &Pipeline{
-		inputRoutine: memoizedPipeRoutine{pipe: inPipe, routine: in},
-		inPipe:       inPipe,
-
+		inputRoutine:  memoizedPipeRoutine{pipe: inPipe, routine: in},
 		outputRoutine: memoizedPipeRoutine{pipe: outPipe, routine: out},
-		outPipe:       outPipe,
 
 		previousPipe: inPipe,
 	}
 }
 
-func (s *Pipeline) In(process Routine) *Pipeline {
-	s.inputRoutine = memoizedPipeRoutine{pipe: s.inPipe, routine: process}
+func New2() *Pipeline {
+	inPipe := NewChanPipe()
+	//outPipe := NewChanPipe()
+
+	//inPipe.Chain(outPipe)
+
+	return &Pipeline{
+		//inputRoutine:  memoizedPipeRoutine{pipe: inPipe, routine: in},
+		//outputRoutine: memoizedPipeRoutine{pipe: outPipe, routine: out},
+
+		previousPipe: inPipe,
+	}
+}
+
+func (s *Pipeline) In(r Routine) *Pipeline {
+	s.inputRoutine.routine = r
 
 	return s
 }
 
-func (s *Pipeline) Out(process Routine) *Pipeline {
-	s.outputRoutine = memoizedPipeRoutine{pipe: s.outPipe, routine: process}
+func (s *Pipeline) Out(r Routine) *Pipeline {
+	s.outputRoutine.routine = r
 
 	return s
 }
@@ -60,6 +70,34 @@ func (s *Pipeline) Chain(r Routine) *Pipeline {
 	})
 
 	return s
+}
+
+func (s *Pipeline) Start(ctx context.Context, pipe Pipe) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	inPipe := NewChanPipe()
+	inPipe.SetInChan(pipe.In())
+
+	previousPipe := inPipe
+
+	for _, routine := range s.routines {
+		stepPipe := NewChanPipe()
+
+		previousPipe.Chain(stepPipe)
+		previousPipe = stepPipe
+
+		go func() {
+			err := routine.Start(ctx, stepPipe)
+			if err != nil {
+				slog.Error("routine error", "error", err)
+			}
+		}()
+	}
+
+	previousPipe.SetOutChan(pipe.Out())
+
+	return nil
 }
 
 func (s *Pipeline) Run(ctx context.Context) error {
@@ -93,7 +131,7 @@ func (s *Pipeline) Run(ctx context.Context) error {
 	}()
 
 	// wait for input routine to finish
-	<-s.outPipe.Done()
+	<-s.outputRoutine.pipe.Done()
 
 	// all routines should exit when context is cancelled
 	return nil
