@@ -8,6 +8,7 @@ import (
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
 	"io"
+	"log/slog"
 )
 
 // JSONCodec parses JSON file content
@@ -215,6 +216,15 @@ func (c *JSONCodec) encodeJSONLines(ctx context.Context, pipe pipeline.Pipe, wri
 func (c *JSONCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
 	var messages []any
 
+	// Ensure we write the JSON array at the end
+	defer func() {
+		encoder := json.NewEncoder(writer)
+		err := encoder.Encode(messages)
+		if err != nil {
+			slog.Error("failed to encode JSON array", "error", err)
+		}
+	}()
+
 	// Collect all messages first
 	for msg := range pipe.In() {
 		select {
@@ -225,7 +235,5 @@ func (c *JSONCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, wri
 		}
 	}
 
-	// Write as JSON array
-	encoder := json.NewEncoder(writer)
-	return encoder.Encode(messages)
+	return nil
 }

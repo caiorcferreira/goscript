@@ -3,6 +3,7 @@ package filesystem
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
 	"io"
@@ -57,20 +58,23 @@ func (c *LineCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Wr
 		case <-ctx.Done():
 			return nil
 		default:
-			switch v := msg.Data.(type) {
-			case string:
-				if _, err := writer.Write([]byte(v + "\n")); err != nil {
-					return err
-				}
-			case []byte:
-				if _, err := writer.Write(v); err != nil {
-					return err
-				}
-				// Note: Other types are ignored to maintain backward compatibility
-				// The original implementation only handled strings and []byte
+			line := castDataToLine(msg.Data)
+			if _, err := writer.Write(line); err != nil {
+				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func castDataToLine(data any) []byte {
+	switch v := data.(type) {
+	case string:
+		return []byte(v + "\n")
+	case []byte:
+		return append(v, '\n')
+	default:
+		return []byte(fmt.Sprintf("%v\n", v))
+	}
 }

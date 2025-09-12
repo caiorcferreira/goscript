@@ -181,7 +181,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).WithBlobWriteCodec().Write()
 
 		testData := []byte("binary data content")
 		testMessages := []pipeline.Msg{
@@ -315,8 +315,8 @@ func TestFileRoutine_Write(t *testing.T) {
 		content, err := os.ReadFile(testFile)
 		require.NoError(t, err)
 
-		// Should only contain valid string messages
-		expectedContent := "valid string\nanother valid string\n"
+		// All data types should be written, converted to strings with newlines
+		expectedContent := "valid string\n123\nanother valid string\n"
 		assert.Equal(t, expectedContent, string(content))
 	})
 }
