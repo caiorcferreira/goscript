@@ -19,5 +19,5 @@ type Pipe interface {
 }
 
 type Routine interface {
-	Run(ctx context.Context, pipe Pipe) error
+	Start(ctx context.Context, pipe Pipe) error
 }

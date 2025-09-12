@@ -47,7 +47,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := doubleTransform.Run(ctx, pipe)
+			err := doubleTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -95,7 +95,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := stringTransform.Run(ctx, pipe)
+			err := stringTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -140,7 +140,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := identityTransform.Run(ctx, pipe)
+			err := identityTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -175,7 +175,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		}()
 
 		go func() {
-			err := identityTransform.Run(ctx, pipe)
+			err := identityTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -242,7 +242,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := intTransform.Run(ctx, pipe)
+			err := intTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -302,7 +302,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := intTransform.Run(ctx, pipe)
+			err := intTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -346,7 +346,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := identityTransform.Run(ctx, pipe)
+			err := identityTransform.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -398,7 +398,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := squareTransform.Run(ctx, pipe)
+			err := squareTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -441,7 +441,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := incrementTransform.Run(ctx, pipe)
+			err := incrementTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -499,7 +499,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := complexTransform.Run(ctx, pipe)
+			err := complexTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -553,7 +553,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := doubleTransform.Run(ctx, pipe)
+			err := doubleTransform.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 

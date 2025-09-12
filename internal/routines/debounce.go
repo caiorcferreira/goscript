@@ -17,7 +17,7 @@ func Debounce(debounceTime time.Duration) DebounceRoutine {
 	}
 }
 
-func (p DebounceRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (p DebounceRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	for msg := range pipe.In() {

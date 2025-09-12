@@ -20,7 +20,7 @@ type mockRoutine struct {
 	mu          sync.Mutex
 }
 
-func (m *mockRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (m *mockRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	atomic.AddInt32(&m.callCount, 1)
 	if m.processFunc != nil {
 		return m.processFunc(ctx, pipe)
@@ -85,7 +85,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -140,7 +140,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -191,7 +191,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		parallel := routines.Parallel(mockR, maxConcurrency)
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -256,7 +256,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -324,7 +324,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -383,7 +383,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -451,7 +451,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -514,7 +514,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := parallel.Run(ctx, pipe)
+			err := parallel.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 

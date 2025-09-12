@@ -22,7 +22,7 @@ func (p *StdInRoutine) Pipe(pipe pipeline.Pipe) {
 	p.pipe = pipe
 }
 
-func (p *StdInRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (p *StdInRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	w := &stdinWriter{pipe: pipe}
 
 	for {
@@ -56,7 +56,7 @@ func NewStdOutRoutine() *StdOutRoutine {
 	return &StdOutRoutine{}
 }
 
-func (p *StdOutRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (p *StdOutRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	for {
 		select {
 		case <-ctx.Done():

@@ -37,15 +37,12 @@ func New(in, out Routine) *Pipeline {
 
 func (s *Pipeline) In(process Routine) *Pipeline {
 	s.inputRoutine = memoizedPipeRoutine{pipe: s.inPipe, routine: process}
-	//s.inputRoutine.Pipe(s.inPipe)
 
 	return s
 }
 
 func (s *Pipeline) Out(process Routine) *Pipeline {
 	s.outputRoutine = memoizedPipeRoutine{pipe: s.outPipe, routine: process}
-	//s.outputRoutine = process
-	//s.outputRoutine.Pipe(s.outPipe)
 
 	return s
 }
@@ -108,5 +105,5 @@ type memoizedPipeRoutine struct {
 }
 
 func (m memoizedPipeRoutine) Run(ctx context.Context) error {
-	return m.routine.Run(ctx, m.pipe)
+	return m.routine.Start(ctx, m.pipe)
 }

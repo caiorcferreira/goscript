@@ -47,7 +47,7 @@ type ReadFileRoutineBuilder struct {
 }
 
 // Run executes the file reading operation directly
-func (r *ReadFileRoutineBuilder) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (r *ReadFileRoutineBuilder) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	slog.Info("reading file", "path", r.path)
 	defer func() {
 		slog.Info("finished reading file", "path", r.path)
@@ -76,7 +76,7 @@ type ReadFileRoutine struct {
 	readCodec ReadCodec
 }
 
-func (r *ReadFileRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (r *ReadFileRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	slog.Info("reading file", "path", r.path)
 	defer func() {
 		slog.Info("finished reading file", "path", r.path)
@@ -135,7 +135,7 @@ type WriteFileRoutine struct {
 	writeCodec WriteCodec
 }
 
-func (w *WriteFileRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (w *WriteFileRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	slog.Info("writing file", "path", w.path)
 	defer func() {
 		slog.Info("finished writing file", "path", w.path)

@@ -14,7 +14,7 @@ func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
 	return &TransformRoutine[T, V]{transform: f}
 }
 
-func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (t *TransformRoutine[T, V]) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	for msg := range pipe.In() {

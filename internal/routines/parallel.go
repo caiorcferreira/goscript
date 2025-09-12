@@ -18,7 +18,7 @@ func Parallel(r pipeline.Routine, maxConcurrency int) ParallelRoutine {
 	}
 }
 
-func (p ParallelRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
+func (p ParallelRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	subpipes := make([]*pipeline.ChannelPipe, p.maxConcurrency)
@@ -90,7 +90,7 @@ func (p ParallelRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	// start worker goroutines
 	for i := 0; i < p.maxConcurrency; i++ {
 		go func() {
-			p.routine.Run(ctx, subpipes[i])
+			p.routine.Start(ctx, subpipes[i])
 		}()
 	}
 

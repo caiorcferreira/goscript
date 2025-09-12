@@ -50,7 +50,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -105,7 +105,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -139,7 +139,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		}()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -196,7 +196,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			require.NoError(t, err)
 		}()
 
@@ -244,7 +244,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -289,7 +289,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -337,7 +337,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -386,7 +386,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -440,7 +440,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := debounce.Run(ctx, pipe)
+			err := debounce.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 

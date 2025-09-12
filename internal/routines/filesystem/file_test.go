@@ -41,7 +41,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -76,7 +76,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		defer cancel()
 
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -103,7 +103,7 @@ func TestFileRoutine_Read(t *testing.T) {
 			cancel()
 		}()
 
-		err = fileRoutine.Run(ctx, pipe)
+		err = fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err) // Context cancellation should gracefully stop, not error
 	})
 
@@ -112,7 +112,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		fileRoutine := filesystem.File("/non/existent/file.txt").Read()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to open file for read")
@@ -130,7 +130,7 @@ func TestFileRoutine_Read(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -166,7 +166,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		}()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err)
 
 		content, err := os.ReadFile(testFile)
@@ -196,7 +196,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		}()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err)
 
 		content, err := os.ReadFile(testFile)
@@ -224,7 +224,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		}()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err)
 
 		// Verify directory was created
@@ -253,7 +253,7 @@ func TestFileRoutine_Write(t *testing.T) {
 			close(pipe.In())
 		}()
 
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err) // Context cancellation doesn't return error in write mode
 	})
 
@@ -278,7 +278,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		}()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 		assert.NoError(t, err)
 
 		content, err := os.ReadFile(testFile)
@@ -296,7 +296,7 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		fileRoutine := filesystem.File("/non/existent/file.txt").Read()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to open file for read")
@@ -321,7 +321,7 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		}()
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 
 		// This should fail due to permissions
 		if err != nil {
@@ -336,7 +336,7 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		fileRoutine := filesystem.File(tempDir).Read() // tempDir is a directory, not a file
 
 		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
+		err := fileRoutine.Start(ctx, pipe)
 
 		// With codec strategy, error now comes from parse phase
 		if err != nil {
@@ -370,7 +370,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -404,7 +404,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -438,7 +438,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -474,7 +474,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -511,7 +511,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 
 		ctx := context.Background()
 		go func() {
-			err := fileRoutine.Run(ctx, pipe)
+			err := fileRoutine.Start(ctx, pipe)
 			assert.NoError(t, err)
 		}()
 
@@ -533,7 +533,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		fileRoutine := filesystem.File(testFile).Read().WithJSONCodec()
 
 		ctx := context.Background()
-		err = fileRoutine.Run(ctx, pipe)
+		err = fileRoutine.Start(ctx, pipe)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse file with codec")
