@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/caiorcferreira/goscript"
 	"github.com/caiorcferreira/goscript/internal/routines"
+	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"strings"
 	"time"
 )
@@ -14,10 +15,10 @@ func main() {
 	script := goscript.New()
 
 	script.
-		In(routines.File("data/example.txt").Read()).
+		In(filesystem.File("data/example.txt").Read()).
 		Parallel(routines.Transform(strings.ToUpper), 3).
 		Debounce(time.Millisecond * 100).
-		Out(routines.File("data/output/parallel_15.txt").Write())
+		Out(filesystem.File("data/output/parallel_15.txt").Write())
 
 	//Chain(routines.Parallel(routines.Transform(strings.ToUpper), 3)).
 	//Chain(routines.Debounce(5 * time.Second)).

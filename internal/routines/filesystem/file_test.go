@@ -1,7 +1,8 @@
-package routines_test
+package filesystem_test
 
 import (
 	"context"
+	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"io"
 	"os"
 	"path/filepath"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Read()
+		fileRoutine := filesystem.File(testFile).Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -62,7 +62,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Read()
+		fileRoutine := filesystem.File(testFile).Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -97,7 +97,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Read()
+		fileRoutine := filesystem.File(testFile).Read()
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -112,7 +112,7 @@ func TestFileRoutine_Read(t *testing.T) {
 
 	t.Run("returns error for non-existent file", func(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File("/non/existent/file.txt").Read()
+		fileRoutine := filesystem.File("/non/existent/file.txt").Read()
 
 		ctx := context.Background()
 		err := fileRoutine.Run(ctx, pipe)
@@ -129,7 +129,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Read()
+		fileRoutine := filesystem.File(testFile).Read()
 
 		ctx := context.Background()
 		go func() {
@@ -153,7 +153,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "first line"},
@@ -184,7 +184,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testData := []byte("binary data content")
 		testMessages := []pipeline.Msg{
@@ -213,7 +213,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "subdir", "nested", "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "test content"},
@@ -248,7 +248,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "new content"},
@@ -275,7 +275,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		ctx, cancel := context.WithCancel(context.Background())
 
@@ -296,7 +296,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "valid string"},
@@ -334,7 +334,7 @@ func TestFileRoutine_Append(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Append()
+		fileRoutine := filesystem.File(testFile).Append()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "appended line"},
@@ -361,7 +361,7 @@ func TestFileRoutine_Append(t *testing.T) {
 		testFile := filepath.Join(tempDir, "new_file.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Append()
+		fileRoutine := filesystem.File(testFile).Append()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "first line"},
@@ -387,7 +387,7 @@ func TestFileRoutine_Append(t *testing.T) {
 func TestFileRoutine_ErrorHandling(t *testing.T) {
 	t.Run("returns error for non-existent file read", func(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File("/non/existent/file.txt").Read()
+		fileRoutine := filesystem.File("/non/existent/file.txt").Read()
 
 		ctx := context.Background()
 		err := fileRoutine.Run(ctx, pipe)
@@ -401,7 +401,7 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		testFile := "/root/restricted/test.txt"
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Write()
+		fileRoutine := filesystem.File(testFile).Write()
 
 		testMessages := []pipeline.Msg{
 			{ID: "1", Data: "test"},
@@ -427,7 +427,7 @@ func TestFileRoutine_ErrorHandling(t *testing.T) {
 		tempDir := t.TempDir()
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(tempDir).Read() // tempDir is a directory, not a file
+		fileRoutine := filesystem.File(tempDir).Read() // tempDir is a directory, not a file
 
 		ctx := context.Background()
 		err := fileRoutine.Run(ctx, pipe)
@@ -449,7 +449,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).Read()
+		fileRoutine := filesystem.File(testFile).Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -483,7 +483,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithLineCodec().Read()
+		fileRoutine := filesystem.File(testFile).WithLineCodec().Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -517,7 +517,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithCSVCodec().Read()
+		fileRoutine := filesystem.File(testFile).WithCSVCodec().Read()
 
 		var results [][]string
 		var wg sync.WaitGroup
@@ -553,7 +553,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithJSONCodec().Read()
+		fileRoutine := filesystem.File(testFile).WithJSONCodec().Read()
 
 		var results []map[string]any
 		var wg sync.WaitGroup
@@ -590,7 +590,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithBlobCodec().Read()
+		fileRoutine := filesystem.File(testFile).WithBlobCodec().Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -627,7 +627,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		customCodec := &spaceCodec{}
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithCodec(customCodec).Read()
+		fileRoutine := filesystem.File(testFile).WithCodec(customCodec).Read()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -661,7 +661,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := routines.File(testFile).WithJSONCodec().Read()
+		fileRoutine := filesystem.File(testFile).WithJSONCodec().Read()
 
 		ctx := context.Background()
 		err = fileRoutine.Run(ctx, pipe)

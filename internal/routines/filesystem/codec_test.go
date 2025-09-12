@@ -1,13 +1,13 @@
-package routines_test
+package filesystem_test
 
 import (
 	"context"
+	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,7 +32,7 @@ func TestLineCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewLineCodec()
+		codec := filesystem.NewLineCodec()
 
 		// Run codec in goroutine
 		go func() {
@@ -59,7 +59,7 @@ func TestLineCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewLineCodec()
+		codec := filesystem.NewLineCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -77,7 +77,7 @@ func TestLineCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewLineCodec()
+		codec := filesystem.NewLineCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -96,7 +96,7 @@ func TestLineCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
-		codec := routines.NewLineCodec()
+		codec := filesystem.NewLineCodec()
 
 		// Cancel context immediately
 		cancel()
@@ -113,7 +113,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewCSVCodec()
+		codec := filesystem.NewCSVCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -147,7 +147,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewCSVCodec().WithSeparator(';')
+		codec := filesystem.NewCSVCodec().WithSeparator(';')
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -171,7 +171,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewCSVCodec().WithComment('#')
+		codec := filesystem.NewCSVCodec().WithComment('#')
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -194,7 +194,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewCSVCodec()
+		codec := filesystem.NewCSVCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -212,7 +212,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewCSVCodec()
+		codec := filesystem.NewCSVCodec()
 
 		err := codec.Parse(ctx, reader, pipe)
 
@@ -227,7 +227,7 @@ func TestCSVCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
-		codec := routines.NewCSVCodec()
+		codec := filesystem.NewCSVCodec()
 
 		// Cancel context immediately
 		cancel()
@@ -244,7 +244,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithJSONArrayMode()
+		codec := filesystem.NewJSONCodec().WithJSONArrayMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -276,7 +276,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec()
+		codec := filesystem.NewJSONCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -300,7 +300,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithJSONLinesMode()
+		codec := filesystem.NewJSONCodec().WithJSONLinesMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -326,7 +326,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithJSONLinesMode()
+		codec := filesystem.NewJSONCodec().WithJSONLinesMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -350,7 +350,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec()
+		codec := filesystem.NewJSONCodec()
 
 		err := codec.Parse(ctx, reader, pipe)
 
@@ -364,7 +364,7 @@ invalid json line`
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithJSONLinesMode()
+		codec := filesystem.NewJSONCodec().WithJSONLinesMode()
 
 		err := codec.Parse(ctx, reader, pipe)
 
@@ -377,7 +377,7 @@ invalid json line`
 		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
-		codec := routines.NewJSONCodec()
+		codec := filesystem.NewJSONCodec()
 
 		// Cancel context immediately
 		cancel()
@@ -394,7 +394,7 @@ func TestBlobCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewBlobCodec()
+		codec := filesystem.NewBlobCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -415,7 +415,7 @@ func TestBlobCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewBlobCodec().AsBytes()
+		codec := filesystem.NewBlobCodec().AsBytes()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -435,7 +435,7 @@ func TestBlobCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewBlobCodec()
+		codec := filesystem.NewBlobCodec()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -454,7 +454,7 @@ func TestBlobCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewBlobCodec().AsBytes()
+		codec := filesystem.NewBlobCodec().AsBytes()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -472,7 +472,7 @@ func TestBlobCodec(t *testing.T) {
 		content := "test content"
 
 		// Test as string
-		codec := routines.NewBlobCodec().AsStrings()
+		codec := filesystem.NewBlobCodec().AsStrings()
 		reader := strings.NewReader(content)
 		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
@@ -509,7 +509,7 @@ func TestBlobCodec(t *testing.T) {
 		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
-		codec := routines.NewBlobCodec()
+		codec := filesystem.NewBlobCodec()
 
 		// Cancel context immediately
 		cancel()
