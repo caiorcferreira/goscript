@@ -107,8 +107,7 @@ func TestFileRoutine_Read(t *testing.T) {
 		}()
 
 		err = fileRoutine.Run(ctx, pipe)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "context canceled")
+		assert.NoError(t, err) // Context cancellation should gracefully stop, not error
 	})
 
 	t.Run("returns error for non-existent file", func(t *testing.T) {

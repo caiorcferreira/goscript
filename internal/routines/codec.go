@@ -6,13 +6,29 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
 	"io"
 )
 
+// ReadCodec defines the interface for parsing file content into messages
+// Reads from a reader and writes messages to a pipe
+type ReadCodec interface {
+	// Parse reads from the reader and writes messages to the pipe
+	Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error
+}
+
+// WriteCodec defines the interface for encoding messages to file content
+// Reads messages from a pipe and writes them to a writer
+type WriteCodec interface {
+	// Encode reads messages from the pipe and writes them to the writer
+	Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error
+}
+
 // Codec defines the interface for parsing file content into messages
 // Now writes directly to a Pipe and supports context
+// Deprecated: Use ReadCodec instead
 type Codec interface {
 	// Parse reads from the reader and writes messages to the pipe
 	Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error
@@ -20,6 +36,10 @@ type Codec interface {
 
 // LineCodec parses file content line by line
 type LineCodec struct{}
+
+// Ensure LineCodec implements both interfaces
+var _ ReadCodec = (*LineCodec)(nil)
+var _ Codec = (*LineCodec)(nil)
 
 func NewLineCodec() *LineCodec {
 	return &LineCodec{}
@@ -59,6 +79,10 @@ type CSVCodec struct {
 	Separator rune
 	Comment   rune
 }
+
+// Ensure CSVCodec implements both interfaces
+var _ ReadCodec = (*CSVCodec)(nil)
+var _ Codec = (*CSVCodec)(nil)
 
 func NewCSVCodec() *CSVCodec {
 	return &CSVCodec{
@@ -117,6 +141,10 @@ type JSONCodec struct {
 	JSONArray bool
 }
 
+// Ensure JSONCodec implements both interfaces
+var _ ReadCodec = (*JSONCodec)(nil)
+var _ WriteCodec = (*JSONCodec)(nil)
+
 func NewJSONCodec() *JSONCodec {
 	return &JSONCodec{
 		JSONLines: false,
@@ -156,15 +184,36 @@ func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe pipeli
 		return err
 	}
 
-	msg := pipeline.Msg{
-		ID:   uuid.NewString(),
-		Data: objectData,
-	}
+	// Auto-detect arrays and process them as individual elements for backward compatibility
+	if arrayData, ok := objectData.([]any); ok {
+		for _, item := range arrayData {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				msg := pipeline.Msg{
+					ID:   uuid.NewString(),
+					Data: item,
+				}
 
-	select {
-	case pipe.Out() <- msg:
-	case <-ctx.Done():
-		return nil
+				select {
+				case pipe.Out() <- msg:
+				case <-ctx.Done():
+					return nil
+				}
+			}
+		}
+	} else {
+		msg := pipeline.Msg{
+			ID:   uuid.NewString(),
+			Data: objectData,
+		}
+
+		select {
+		case pipe.Out() <- msg:
+		case <-ctx.Done():
+			return nil
+		}
 	}
 
 	return nil
@@ -243,6 +292,10 @@ type BlobCodec struct {
 	AsString bool
 }
 
+// Ensure BlobCodec implements both interfaces
+var _ ReadCodec = (*BlobCodec)(nil)
+var _ Codec = (*BlobCodec)(nil)
+
 func NewBlobCodec() *BlobCodec {
 	return &BlobCodec{
 		AsString: true,
@@ -283,6 +336,235 @@ func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 	case pipe.Out() <- msg:
 	case <-ctx.Done():
 		return nil
+	}
+
+	return nil
+}
+
+// WriteCodec implementations
+
+// LineWriteCodec writes messages as lines to a writer
+type LineWriteCodec struct{}
+
+// Ensure LineWriteCodec implements WriteCodec
+var _ WriteCodec = (*LineWriteCodec)(nil)
+
+func NewLineWriteCodec() *LineWriteCodec {
+	return &LineWriteCodec{}
+}
+
+func (c *LineWriteCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case string:
+				if _, err := writer.Write([]byte(v + "\n")); err != nil {
+					return err
+				}
+			case []byte:
+				if _, err := writer.Write(v); err != nil {
+					return err
+				}
+				// Note: Other types are ignored to maintain backward compatibility
+				// The original implementation only handled strings and []byte
+			}
+		}
+	}
+
+	return nil
+}
+
+// CSVWriteCodec writes messages as CSV records to a writer
+type CSVWriteCodec struct {
+	Separator rune
+}
+
+// Ensure CSVWriteCodec implements WriteCodec
+var _ WriteCodec = (*CSVWriteCodec)(nil)
+
+func NewCSVWriteCodec() *CSVWriteCodec {
+	return &CSVWriteCodec{
+		Separator: ',',
+	}
+}
+
+func (c *CSVWriteCodec) WithSeparator(sep rune) *CSVWriteCodec {
+	c.Separator = sep
+	return c
+}
+
+func (c *CSVWriteCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	csvWriter := csv.NewWriter(writer)
+	csvWriter.Comma = c.Separator
+	defer csvWriter.Flush()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case []string:
+				if err := csvWriter.Write(v); err != nil {
+					return err
+				}
+			case string:
+				// Split string by separator and write as CSV record
+				record := []string{v}
+				if err := csvWriter.Write(record); err != nil {
+					return err
+				}
+			default:
+				// Convert to string and write as single field
+				record := []string{fmt.Sprintf("%v", v)}
+				if err := csvWriter.Write(record); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// JSONWriteCodec writes messages as JSON to a writer
+type JSONWriteCodec struct {
+	// JSONArray when true, writes messages as a JSON array
+	JSONArray bool
+	// JSONLines when true, writes each message as a separate JSON line (JSONL format)
+	JSONLines bool
+}
+
+// Ensure JSONWriteCodec implements WriteCodec
+var _ WriteCodec = (*JSONWriteCodec)(nil)
+
+func NewJSONWriteCodec() *JSONWriteCodec {
+	return &JSONWriteCodec{
+		JSONArray: false,
+		JSONLines: false,
+	}
+}
+
+func (c *JSONWriteCodec) WithJSONArrayMode() *JSONWriteCodec {
+	c.JSONArray = true
+	c.JSONLines = false
+	return c
+}
+
+func (c *JSONWriteCodec) WithJSONLinesMode() *JSONWriteCodec {
+	c.JSONLines = true
+	c.JSONArray = false
+	return c
+}
+
+func (c *JSONWriteCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	if c.JSONLines {
+		return c.encodeJSONLines(ctx, pipe, writer)
+	}
+
+	if c.JSONArray {
+		return c.encodeJSONArray(ctx, pipe, writer)
+	}
+
+	return c.encodeJSON(ctx, pipe, writer)
+}
+
+func (c *JSONWriteCodec) encodeJSON(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	encoder := json.NewEncoder(writer)
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			if err := encoder.Encode(msg.Data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *JSONWriteCodec) encodeJSONLines(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	encoder := json.NewEncoder(writer)
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			if err := encoder.Encode(msg.Data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *JSONWriteCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	var messages []any
+
+	// Collect all messages first
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			messages = append(messages, msg.Data)
+		}
+	}
+
+	// Write as JSON array
+	encoder := json.NewEncoder(writer)
+	return encoder.Encode(messages)
+}
+
+// BlobWriteCodec writes messages as raw data to a writer
+type BlobWriteCodec struct{}
+
+// Ensure BlobWriteCodec implements WriteCodec
+var _ WriteCodec = (*BlobWriteCodec)(nil)
+
+func NewBlobWriteCodec() *BlobWriteCodec {
+	return &BlobWriteCodec{}
+}
+
+func (c *BlobWriteCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case string:
+				if _, err := writer.Write([]byte(v)); err != nil {
+					return err
+				}
+			case []byte:
+				if _, err := writer.Write(v); err != nil {
+					return err
+				}
+			default:
+				// Convert other types to string representation
+				str := fmt.Sprintf("%v", v)
+				if _, err := writer.Write([]byte(str)); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil

@@ -15,53 +15,99 @@ func File(path string) FileRoutineBuilder {
 }
 
 type FileRoutineBuilder struct {
-	path  string
-	codec Codec
+	path       string
+	readCodec  ReadCodec
+	writeCodec WriteCodec
 }
 
 func (f FileRoutineBuilder) Read() *FileRoutine {
-	codec := f.codec
-	if codec == nil {
-		codec = NewLineCodec() // Default to line-by-line reading
+	readCodec := f.readCodec
+	if readCodec == nil {
+		readCodec = NewLineCodec()
 	}
-	return &FileRoutine{path: f.path, mode: modeRead, codec: codec}
+	return &FileRoutine{path: f.path, mode: modeRead, readCodec: readCodec}
 }
 
 func (f FileRoutineBuilder) Write() *FileRoutine {
-	return &FileRoutine{path: f.path, mode: modeWrite}
+	writeCodec := f.writeCodec
+	if writeCodec == nil {
+		writeCodec = NewLineWriteCodec()
+	}
+	return &FileRoutine{path: f.path, mode: modeWrite, writeCodec: writeCodec}
 }
 
 func (f FileRoutineBuilder) Append() *FileRoutine {
-	return &FileRoutine{path: f.path, mode: modeAppend}
+	writeCodec := f.writeCodec
+	if writeCodec == nil {
+		writeCodec = NewLineWriteCodec()
+	}
+	return &FileRoutine{path: f.path, mode: modeAppend, writeCodec: writeCodec}
+}
+
+// WithReadCodec sets the codec for reading files
+func (f FileRoutineBuilder) WithReadCodec(codec ReadCodec) FileRoutineBuilder {
+	f.readCodec = codec
+	return f
+}
+
+// WithWriteCodec sets the codec for writing files
+func (f FileRoutineBuilder) WithWriteCodec(codec WriteCodec) FileRoutineBuilder {
+	f.writeCodec = codec
+	return f
 }
 
 // WithCodec sets the codec for reading files
+// Deprecated: Use WithReadCodec instead
 func (f FileRoutineBuilder) WithCodec(codec Codec) FileRoutineBuilder {
-	f.codec = codec
+	f.readCodec = codec
 	return f
 }
 
 // WithLineCodec sets the codec to LineCodec for line-by-line reading
 func (f FileRoutineBuilder) WithLineCodec() FileRoutineBuilder {
-	f.codec = NewLineCodec()
+	f.readCodec = NewLineCodec()
+	return f
+}
+
+// WithLineWriteCodec sets the codec to LineWriteCodec for line-by-line writing
+func (f FileRoutineBuilder) WithLineWriteCodec() FileRoutineBuilder {
+	f.writeCodec = NewLineWriteCodec()
 	return f
 }
 
 // WithCSVCodec sets the codec to CSVCodec for CSV parsing
 func (f FileRoutineBuilder) WithCSVCodec() FileRoutineBuilder {
-	f.codec = NewCSVCodec()
+	f.readCodec = NewCSVCodec()
+	return f
+}
+
+// WithCSVWriteCodec sets the codec to CSVWriteCodec for CSV writing
+func (f FileRoutineBuilder) WithCSVWriteCodec() FileRoutineBuilder {
+	f.writeCodec = NewCSVWriteCodec()
 	return f
 }
 
 // WithJSONCodec sets the codec to JSONCodec for JSON parsing
 func (f FileRoutineBuilder) WithJSONCodec() FileRoutineBuilder {
-	f.codec = NewJSONCodec()
+	f.readCodec = NewJSONCodec()
+	return f
+}
+
+// WithJSONWriteCodec sets the codec to JSONWriteCodec for JSON writing
+func (f FileRoutineBuilder) WithJSONWriteCodec() FileRoutineBuilder {
+	f.writeCodec = NewJSONWriteCodec()
 	return f
 }
 
 // WithBlobCodec sets the codec to BlobCodec for entire file reading
 func (f FileRoutineBuilder) WithBlobCodec() FileRoutineBuilder {
-	f.codec = NewBlobCodec()
+	f.readCodec = NewBlobCodec()
+	return f
+}
+
+// WithBlobWriteCodec sets the codec to BlobWriteCodec for raw data writing
+func (f FileRoutineBuilder) WithBlobWriteCodec() FileRoutineBuilder {
+	f.writeCodec = NewBlobWriteCodec()
 	return f
 }
 
@@ -72,9 +118,10 @@ const (
 )
 
 type FileRoutine struct {
-	path  string
-	mode  int
-	codec Codec
+	path       string
+	mode       int
+	readCodec  ReadCodec
+	writeCodec WriteCodec
 }
 
 func (f *FileRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
@@ -103,7 +150,7 @@ func (f *FileRoutine) read(ctx context.Context, pipe pipeline.Pipe) error {
 	defer file.Close()
 
 	// Use codec to parse file content and write to pipe with context support
-	err = f.codec.Parse(ctx, file, pipe)
+	err = f.readCodec.Parse(ctx, file, pipe)
 	if err != nil {
 		return fmt.Errorf("failed to parse file with codec: %w", err)
 	}
@@ -123,24 +170,11 @@ func (f *FileRoutine) write(ctx context.Context, pipe pipeline.Pipe) error {
 	}
 
 	defer file.Close()
-	defer pipe.Close()
 
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			slog.Info("file write cancelled")
-		default:
-			slog.Debug("file write received line", "msg", msg)
-
-			switch v := msg.Data.(type) {
-			case string:
-				file.WriteString(v + "\n")
-			case []byte:
-				file.Write(v)
-			default:
-				slog.Warn("file write unknown type", "type", fmt.Sprintf("%T", v))
-			}
-		}
+	// Use writeCodec to encode messages and write to file
+	err = f.writeCodec.Encode(ctx, pipe, file)
+	if err != nil {
+		return fmt.Errorf("failed to encode messages with codec: %w", err)
 	}
 
 	return nil
