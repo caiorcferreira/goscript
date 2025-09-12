@@ -36,14 +36,6 @@ func (f FileRoutineBuilder) Write() *FileRoutine {
 	return &FileRoutine{path: f.path, mode: modeWrite, writeCodec: writeCodec}
 }
 
-func (f FileRoutineBuilder) Append() *FileRoutine {
-	writeCodec := f.writeCodec
-	if writeCodec == nil {
-		writeCodec = NewLineWriteCodec()
-	}
-	return &FileRoutine{path: f.path, mode: modeAppend, writeCodec: writeCodec}
-}
-
 // WithReadCodec sets the codec for reading files
 func (f FileRoutineBuilder) WithReadCodec(codec ReadCodec) FileRoutineBuilder {
 	f.readCodec = codec
@@ -129,9 +121,8 @@ func (f FileRoutineBuilder) WithBlobCodecForWrite() FileRoutineBuilder {
 }
 
 const (
-	modeRead   = os.O_RDONLY
-	modeWrite  = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
-	modeAppend = os.O_WRONLY | os.O_CREATE | os.O_APPEND
+	modeRead  = os.O_RDONLY
+	modeWrite = os.O_WRONLY | os.O_CREATE | os.O_APPEND
 )
 
 type FileRoutine struct {
@@ -145,7 +136,7 @@ func (f *FileRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	switch f.mode {
 	case modeRead:
 		return f.read(ctx, pipe)
-	case modeWrite, modeAppend:
+	case modeWrite:
 		return f.write(ctx, pipe)
 	}
 
