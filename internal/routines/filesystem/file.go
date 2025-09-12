@@ -30,7 +30,7 @@ func (f FileRoutineBuilder) Read() *ReadFileRoutineBuilder {
 func (f FileRoutineBuilder) Write() *WriteFileRoutineBuilder {
 	writeCodec := f.writeCodec
 	if writeCodec == nil {
-		writeCodec = NewLineWriteCodec()
+		writeCodec = NewLineCodec()
 	}
 	return &WriteFileRoutineBuilder{path: f.path, writeCodec: writeCodec, mode: modeWrite}
 }

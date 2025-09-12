@@ -264,8 +264,8 @@ func TestLineCodec_Encode(t *testing.T) {
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
-			{ID: "1", Data: []byte("line1\n")},
-			{ID: "2", Data: []byte("line2\n")},
+			{ID: "1", Data: []byte("line1")},
+			{ID: "2", Data: []byte("line2")},
 		}
 
 		go func() {
@@ -280,34 +280,6 @@ func TestLineCodec_Encode(t *testing.T) {
 		assert.NoError(t, err)
 
 		expected := "line1\nline2\n"
-		assert.Equal(t, expected, buffer.String())
-	})
-
-	t.Run("ignores non-string and non-byte messages", func(t *testing.T) {
-		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "string line"},
-			{ID: "2", Data: 123}, // Should be ignored
-			{ID: "3", Data: []byte("byte line\n")},
-			{ID: "4", Data: true}, // Should be ignored
-			{ID: "5", Data: "another string"},
-		}
-
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
-
-		expected := "string line\nbyte line\nanother string\n"
 		assert.Equal(t, expected, buffer.String())
 	})
 

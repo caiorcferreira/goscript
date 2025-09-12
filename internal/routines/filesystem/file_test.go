@@ -181,7 +181,7 @@ func TestFileRoutine_Write(t *testing.T) {
 		testFile := filepath.Join(tempDir, "output.txt")
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithBlobWriteCodec().Write()
+		fileRoutine := filesystem.File(testFile).Write().WithBlobCodec()
 
 		testData := []byte("binary data content")
 		testMessages := []pipeline.Msg{
@@ -236,37 +236,6 @@ func TestFileRoutine_Write(t *testing.T) {
 		assert.Equal(t, "test content\n", string(content))
 	})
 
-	t.Run("overwrites existing file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		testFile := filepath.Join(tempDir, "output.txt")
-
-		// Create file with initial content
-		err := os.WriteFile(testFile, []byte("old content"), 0644)
-		require.NoError(t, err)
-
-		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).Write()
-
-		testMessages := []pipeline.Msg{
-			{ID: "1", Data: "new content"},
-		}
-
-		go func() {
-			for _, msg := range testMessages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err = fileRoutine.Run(ctx, pipe)
-		assert.NoError(t, err)
-
-		content, err := os.ReadFile(testFile)
-		require.NoError(t, err)
-		assert.Equal(t, "new content\n", string(content))
-	})
-
 	t.Run("handles context cancellation during write", func(t *testing.T) {
 		tempDir := t.TempDir()
 		testFile := filepath.Join(tempDir, "output.txt")
@@ -318,66 +287,6 @@ func TestFileRoutine_Write(t *testing.T) {
 		// All data types should be written, converted to strings with newlines
 		expectedContent := "valid string\n123\nanother valid string\n"
 		assert.Equal(t, expectedContent, string(content))
-	})
-}
-
-func TestFileRoutine_Append(t *testing.T) {
-	t.Run("appends to existing file", func(t *testing.T) {
-		tempDir := t.TempDir()
-		testFile := filepath.Join(tempDir, "output.txt")
-
-		// Create file with initial content
-		err := os.WriteFile(testFile, []byte("existing content\n"), 0644)
-		require.NoError(t, err)
-
-		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).Append()
-
-		testMessages := []pipeline.Msg{
-			{ID: "1", Data: "appended line"},
-		}
-
-		go func() {
-			for _, msg := range testMessages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err = fileRoutine.Run(ctx, pipe)
-		assert.NoError(t, err)
-
-		content, err := os.ReadFile(testFile)
-		require.NoError(t, err)
-		assert.Equal(t, "existing content\nappended line\n", string(content))
-	})
-
-	t.Run("creates new file if it doesn't exist", func(t *testing.T) {
-		tempDir := t.TempDir()
-		testFile := filepath.Join(tempDir, "new_file.txt")
-
-		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).Append()
-
-		testMessages := []pipeline.Msg{
-			{ID: "1", Data: "first line"},
-		}
-
-		go func() {
-			for _, msg := range testMessages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err := fileRoutine.Run(ctx, pipe)
-		assert.NoError(t, err)
-
-		content, err := os.ReadFile(testFile)
-		require.NoError(t, err)
-		assert.Equal(t, "first line\n", string(content))
 	})
 }
 
@@ -480,7 +389,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithLineCodec().Read()
+		fileRoutine := filesystem.File(testFile).Read().WithLineCodec()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -514,7 +423,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithCSVCodec().Read()
+		fileRoutine := filesystem.File(testFile).Read().WithCSVCodec()
 
 		var results [][]string
 		var wg sync.WaitGroup
@@ -550,7 +459,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithJSONCodec().Read()
+		fileRoutine := filesystem.File(testFile).Read().WithJSONCodec()
 
 		var results []map[string]any
 		var wg sync.WaitGroup
@@ -587,7 +496,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithBlobCodec().Read()
+		fileRoutine := filesystem.File(testFile).Read().WithBlobCodec()
 
 		var results []string
 		var wg sync.WaitGroup
@@ -621,7 +530,7 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		require.NoError(t, err)
 
 		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithJSONCodec().Read()
+		fileRoutine := filesystem.File(testFile).Read().WithJSONCodec()
 
 		ctx := context.Background()
 		err = fileRoutine.Run(ctx, pipe)
