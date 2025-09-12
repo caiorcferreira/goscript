@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Helper function to collect messages from pipe
-func collectMessages(pipe *interpreter.ChannelPipe, timeout time.Duration) []interpreter.Msg {
-	var messages []interpreter.Msg
+func collectMessages(pipe *pipeline.ChannelPipe, timeout time.Duration) []pipeline.Msg {
+	var messages []pipeline.Msg
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
@@ -29,7 +29,7 @@ func TestLineCodec(t *testing.T) {
 	t.Run("parses lines successfully", func(t *testing.T) {
 		content := "line1\nline2\nline3"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewLineCodec()
@@ -56,7 +56,7 @@ func TestLineCodec(t *testing.T) {
 
 	t.Run("handles empty file", func(t *testing.T) {
 		reader := strings.NewReader("")
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewLineCodec()
@@ -74,7 +74,7 @@ func TestLineCodec(t *testing.T) {
 	t.Run("handles single line without newline", func(t *testing.T) {
 		content := "single line"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewLineCodec()
@@ -93,7 +93,7 @@ func TestLineCodec(t *testing.T) {
 	t.Run("respects context cancellation", func(t *testing.T) {
 		content := "line1\nline2\nline3"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
 		codec := routines.NewLineCodec()
@@ -110,7 +110,7 @@ func TestCSVCodec(t *testing.T) {
 	t.Run("parses CSV with default settings", func(t *testing.T) {
 		content := "name,age,city\nJohn,30,NYC\nJane,25,LA"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewCSVCodec()
@@ -144,7 +144,7 @@ func TestCSVCodec(t *testing.T) {
 	t.Run("parses CSV with custom separator", func(t *testing.T) {
 		content := "name;age;city\nJohn;30;NYC"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewCSVCodec().WithSeparator(';')
@@ -168,7 +168,7 @@ func TestCSVCodec(t *testing.T) {
 	t.Run("handles CSV comments", func(t *testing.T) {
 		content := "# This is a comment\nname,age\nJohn,30"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewCSVCodec().WithComment('#')
@@ -191,7 +191,7 @@ func TestCSVCodec(t *testing.T) {
 
 	t.Run("handles empty CSV", func(t *testing.T) {
 		reader := strings.NewReader("")
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewCSVCodec()
@@ -209,7 +209,7 @@ func TestCSVCodec(t *testing.T) {
 	t.Run("handles malformed CSV", func(t *testing.T) {
 		content := "name,age\nJohn,30,extra"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewCSVCodec()
@@ -224,7 +224,7 @@ func TestCSVCodec(t *testing.T) {
 	t.Run("respects context cancellation", func(t *testing.T) {
 		content := "name,age\nJohn,30\nJane,25"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
 		codec := routines.NewCSVCodec()
@@ -241,7 +241,7 @@ func TestJSONCodec(t *testing.T) {
 	t.Run("parses JSON array", func(t *testing.T) {
 		content := `[{"name": "John", "age": 30}, {"name": "Jane", "age": 25}]`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec().WithJSONArrayMode()
@@ -273,7 +273,7 @@ func TestJSONCodec(t *testing.T) {
 	t.Run("parses single JSON object", func(t *testing.T) {
 		content := `{"name": "John", "age": 30}`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec()
@@ -297,7 +297,7 @@ func TestJSONCodec(t *testing.T) {
 		content := `{"name": "John", "age": 30}
 {"name": "Jane", "age": 25}`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec().WithJSONLinesMode()
@@ -323,7 +323,7 @@ func TestJSONCodec(t *testing.T) {
 
 {"name": "Jane"}`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec().WithJSONLinesMode()
@@ -347,7 +347,7 @@ func TestJSONCodec(t *testing.T) {
 	t.Run("handles invalid JSON", func(t *testing.T) {
 		content := `{"name": "John", "age": }`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec()
@@ -361,7 +361,7 @@ func TestJSONCodec(t *testing.T) {
 		content := `{"name": "John"}
 invalid json line`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewJSONCodec().WithJSONLinesMode()
@@ -374,7 +374,7 @@ invalid json line`
 	t.Run("respects context cancellation", func(t *testing.T) {
 		content := `[{"name": "John"}, {"name": "Jane"}, {"name": "Bob"}]`
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
 		codec := routines.NewJSONCodec()
@@ -391,7 +391,7 @@ func TestBlobCodec(t *testing.T) {
 	t.Run("reads entire file as string", func(t *testing.T) {
 		content := "line1\nline2\nline3"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewBlobCodec()
@@ -412,7 +412,7 @@ func TestBlobCodec(t *testing.T) {
 	t.Run("reads entire file as bytes", func(t *testing.T) {
 		content := "line1\nline2\nline3"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewBlobCodec().AsBytes()
@@ -432,7 +432,7 @@ func TestBlobCodec(t *testing.T) {
 
 	t.Run("handles empty file as string", func(t *testing.T) {
 		reader := strings.NewReader("")
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewBlobCodec()
@@ -451,7 +451,7 @@ func TestBlobCodec(t *testing.T) {
 
 	t.Run("handles empty file as bytes", func(t *testing.T) {
 		reader := strings.NewReader("")
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		codec := routines.NewBlobCodec().AsBytes()
@@ -474,7 +474,7 @@ func TestBlobCodec(t *testing.T) {
 		// Test as string
 		codec := routines.NewBlobCodec().AsStrings()
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx := context.Background()
 
 		go func() {
@@ -490,7 +490,7 @@ func TestBlobCodec(t *testing.T) {
 		// Test as bytes with same codec
 		codec = codec.AsBytes()
 		reader = strings.NewReader(content)
-		pipe = interpreter.NewChanPipe()
+		pipe = pipeline.NewChanPipe()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -506,7 +506,7 @@ func TestBlobCodec(t *testing.T) {
 	t.Run("respects context cancellation", func(t *testing.T) {
 		content := "test content"
 		reader := strings.NewReader(content)
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 		ctx, cancel := context.WithCancel(context.Background())
 
 		codec := routines.NewBlobCodec()

@@ -1,4 +1,4 @@
-package interpreter
+package pipeline
 
 type ChannelPipe struct {
 	in  chan Msg

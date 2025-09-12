@@ -6,7 +6,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
 	"io"
 )
@@ -15,7 +15,7 @@ import (
 // Now writes directly to a Pipe and supports context
 type Codec interface {
 	// Parse reads from the reader and writes messages to the pipe
-	Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error
+	Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error
 }
 
 // LineCodec parses file content line by line
@@ -25,7 +25,7 @@ func NewLineCodec() *LineCodec {
 	return &LineCodec{}
 }
 
-func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 	scanner := bufio.NewScanner(reader)
 
@@ -35,7 +35,7 @@ func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe interprete
 			return nil
 		default:
 			text := scanner.Text()
-			msg := interpreter.Msg{
+			msg := pipeline.Msg{
 				ID:   uuid.NewString(),
 				Data: text,
 			}
@@ -77,7 +77,7 @@ func (c *CSVCodec) WithComment(comment rune) *CSVCodec {
 	return c
 }
 
-func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	csvReader := csv.NewReader(reader)
@@ -94,7 +94,7 @@ func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter
 		case <-ctx.Done():
 			return nil
 		default:
-			msg := interpreter.Msg{
+			msg := pipeline.Msg{
 				ID:   uuid.NewString(),
 				Data: record,
 			}
@@ -134,7 +134,7 @@ func (c *JSONCodec) WithJSONArrayMode() *JSONCodec {
 	return c
 }
 
-func (c *JSONCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *JSONCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	if c.JSONLines {
@@ -148,7 +148,7 @@ func (c *JSONCodec) Parse(ctx context.Context, reader io.Reader, pipe interprete
 	return c.parseJSON(ctx, reader, pipe)
 }
 
-func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	decoder := json.NewDecoder(reader)
 
 	var objectData any
@@ -156,7 +156,7 @@ func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe interp
 		return err
 	}
 
-	msg := interpreter.Msg{
+	msg := pipeline.Msg{
 		ID:   uuid.NewString(),
 		Data: objectData,
 	}
@@ -170,7 +170,7 @@ func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe interp
 	return nil
 }
 
-func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	scanner := bufio.NewScanner(reader)
 
 	for scanner.Scan() {
@@ -188,7 +188,7 @@ func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe i
 				return err
 			}
 
-			msg := interpreter.Msg{
+			msg := pipeline.Msg{
 				ID:   uuid.NewString(),
 				Data: data,
 			}
@@ -207,7 +207,7 @@ func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe i
 	return nil
 }
 
-func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	decoder := json.NewDecoder(reader)
 
 	var arrayData []any
@@ -221,7 +221,7 @@ func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe i
 		case <-ctx.Done():
 			return nil
 		default:
-			msg := interpreter.Msg{
+			msg := pipeline.Msg{
 				ID:   uuid.NewString(),
 				Data: item,
 			}
@@ -259,7 +259,7 @@ func (c *BlobCodec) AsStrings() *BlobCodec {
 	return c
 }
 
-func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	data, err := io.ReadAll(reader)
@@ -274,7 +274,7 @@ func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe interprete
 		msgData = data
 	}
 
-	msg := interpreter.Msg{
+	msg := pipeline.Msg{
 		ID:   uuid.NewString(),
 		Data: msgData,
 	}

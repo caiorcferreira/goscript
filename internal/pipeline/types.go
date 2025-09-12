@@ -1,4 +1,4 @@
-package interpreter
+package pipeline
 
 import (
 	"context"

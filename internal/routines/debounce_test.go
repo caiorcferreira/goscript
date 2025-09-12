@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,7 +18,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 100 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 3)
 
@@ -34,7 +34,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 		var timestamps []time.Time
 
 		go func() {
@@ -77,7 +77,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 50 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 0)
 
@@ -91,7 +91,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -118,7 +118,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 100 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 		stopAfter := 3
@@ -168,7 +168,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 50 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 2)
 
@@ -182,7 +182,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -214,7 +214,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 75 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(42, 1)
 
@@ -230,7 +230,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -261,7 +261,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 30 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 
@@ -275,7 +275,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -307,7 +307,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 0 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 5)
 
@@ -323,7 +323,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -356,7 +356,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 500 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 2)
 
@@ -372,7 +372,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -406,7 +406,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		debounceTime := 100 * time.Millisecond
 		debounce := routines.Debounce(debounceTime)
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		numMessages := 50
 		testData := generateTestMsgs(1, numMessages)
@@ -423,7 +423,7 @@ func TestDebounceRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 		var mu sync.Mutex
 
 		go func() {

@@ -8,19 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 type mockRoutine struct {
-	processFunc func(ctx context.Context, pipe interpreter.Pipe) error
+	processFunc func(ctx context.Context, pipe pipeline.Pipe) error
 	callCount   int32
 	mu          sync.Mutex
 }
 
-func (m *mockRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (m *mockRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	atomic.AddInt32(&m.callCount, 1)
 	if m.processFunc != nil {
 		return m.processFunc(ctx, pipe)
@@ -35,11 +35,11 @@ func (m *mockRoutine) getCallCount() int32 {
 func TestParallelRoutine_Run(t *testing.T) {
 	t.Run("processes data with correct concurrency", func(t *testing.T) {
 		maxConcurrency := 3
-		processedData := make([]interpreter.Msg, 0)
+		processedData := make([]pipeline.Msg, 0)
 		var mu sync.Mutex
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for data := range pipe.In() {
@@ -55,7 +55,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 
@@ -69,7 +69,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -100,7 +100,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		maxConcurrency := 2
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for range pipe.In() {
@@ -109,7 +109,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		// Empty input data
 		testData := generateTestMsgs(1, 0)
@@ -124,7 +124,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -154,7 +154,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		maxConcurrency := 2
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for data := range pipe.In() {
@@ -168,7 +168,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 		stopAfter := 5
@@ -216,7 +216,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		maxConcurrency := 1
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for data := range pipe.In() {
@@ -226,7 +226,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 1)
 
@@ -240,7 +240,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -277,7 +277,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var mockR *mockRoutine
 
 		mockR = &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				workerID := int(atomic.AddInt32(&mockR.callCount, 1))
@@ -294,7 +294,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(0, 10)
 
@@ -308,7 +308,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -343,7 +343,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		maxConcurrency := 2
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for data := range pipe.In() {
@@ -353,7 +353,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 1)
 
@@ -367,7 +367,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -401,7 +401,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var mockR *mockRoutine
 
 		mockR = &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				workerID := int(atomic.AddInt32(&mockR.callCount, 1))
@@ -420,7 +420,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		numItems := 100
 		testData := generateTestMsgs(0, numItems)
@@ -435,7 +435,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -474,7 +474,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		maxConcurrency := 1
 
 		mockR := &mockRoutine{
-			processFunc: func(ctx context.Context, pipe interpreter.Pipe) error {
+			processFunc: func(ctx context.Context, pipe pipeline.Pipe) error {
 				defer pipe.Close()
 
 				for data := range pipe.In() {
@@ -484,7 +484,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 			},
 		}
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 3)
 
@@ -498,7 +498,7 @@ func TestParallelRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -525,10 +525,10 @@ func TestParallelRoutine_Run(t *testing.T) {
 	})
 }
 
-func generateTestMsgs(start, size int) []interpreter.Msg {
-	testData := make([]interpreter.Msg, 0, size)
+func generateTestMsgs(start, size int) []pipeline.Msg {
+	testData := make([]pipeline.Msg, 0, size)
 	for i := start; i < start+size; i++ {
-		testData = append(testData, interpreter.Msg{
+		testData = append(testData, pipeline.Msg{
 			ID:   "",
 			Data: i,
 		})

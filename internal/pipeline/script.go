@@ -1,12 +1,12 @@
-package interpreter
+package pipeline
 
 import (
 	"context"
 	"log/slog"
 )
 
-// todo: implement Routine interface for Script, so it can be nested with other Scripts
-type Script struct {
+// todo: implement Routine interface for Pipeline, so it can be nested with other Pipeline
+type Pipeline struct {
 	inputRoutine memoizedPipeRoutine
 	inPipe       Pipe
 
@@ -17,14 +17,14 @@ type Script struct {
 	previousPipe       Pipe
 }
 
-// NewScript creates a new instance of Script with default values.
-func NewScript(in, out Routine) *Script {
+// New creates a new instance of Pipeline with default values.
+func New(in, out Routine) *Pipeline {
 	inPipe := NewChanPipe()
 	outPipe := NewChanPipe()
 
 	inPipe.Chain(outPipe)
 
-	return &Script{
+	return &Pipeline{
 		inputRoutine: memoizedPipeRoutine{pipe: inPipe, routine: in},
 		inPipe:       inPipe,
 
@@ -35,14 +35,14 @@ func NewScript(in, out Routine) *Script {
 	}
 }
 
-func (s *Script) In(process Routine) *Script {
+func (s *Pipeline) In(process Routine) *Pipeline {
 	s.inputRoutine = memoizedPipeRoutine{pipe: s.inPipe, routine: process}
 	//s.inputRoutine.Pipe(s.inPipe)
 
 	return s
 }
 
-func (s *Script) Out(process Routine) *Script {
+func (s *Pipeline) Out(process Routine) *Pipeline {
 	s.outputRoutine = memoizedPipeRoutine{pipe: s.outPipe, routine: process}
 	//s.outputRoutine = process
 	//s.outputRoutine.Pipe(s.outPipe)
@@ -50,7 +50,7 @@ func (s *Script) Out(process Routine) *Script {
 	return s
 }
 
-func (s *Script) Chain(r Routine) *Script {
+func (s *Pipeline) Chain(r Routine) *Pipeline {
 	stepPipe := NewChanPipe()
 	previousPipe := s.previousPipe
 
@@ -65,7 +65,7 @@ func (s *Script) Chain(r Routine) *Script {
 	return s
 }
 
-func (s *Script) Run(ctx context.Context) error {
+func (s *Pipeline) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

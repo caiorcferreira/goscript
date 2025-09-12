@@ -2,12 +2,12 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"time"
 )
 
 type DebounceRoutine struct {
-	routine      interpreter.Routine
+	routine      pipeline.Routine
 	debounceTime time.Duration
 }
 
@@ -17,7 +17,7 @@ func Debounce(debounceTime time.Duration) DebounceRoutine {
 	}
 }
 
-func (p DebounceRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (p DebounceRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	for msg := range pipe.In() {

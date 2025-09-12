@@ -15,10 +15,12 @@ func main() {
 
 	script.
 		In(routines.File("data/example.txt").Read()).
-		Chain(routines.Parallel(routines.Transform(strings.ToUpper), 3)).
-		Chain(routines.Debounce(5 * time.Second)).
+		Parallel(routines.Transform(strings.ToUpper), 3).
+		Debounce(time.Millisecond * 100).
 		Out(routines.File("data/output/parallel_15.txt").Write())
 
+	//Chain(routines.Parallel(routines.Transform(strings.ToUpper), 3)).
+	//Chain(routines.Debounce(5 * time.Second)).
 	//ExecForEach(goscript.HTTP().Get("https://httpbun.com/get?param={{.}}"))
 
 	ctx := context.Background()

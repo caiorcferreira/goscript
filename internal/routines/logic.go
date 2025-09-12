@@ -2,7 +2,7 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"log/slog"
 )
 
@@ -14,7 +14,7 @@ func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
 	return &TransformRoutine[T, V]{transform: f}
 }
 
-func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	for msg := range pipe.In() {
@@ -28,7 +28,7 @@ func (t *TransformRoutine[T, V]) Run(ctx context.Context, pipe interpreter.Pipe)
 			continue
 		}
 
-		transformedMsg := interpreter.Msg{
+		transformedMsg := pipeline.Msg{
 			ID:   msg.ID,
 			Data: t.transform(val),
 		}

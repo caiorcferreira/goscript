@@ -3,7 +3,7 @@ package routines
 import (
 	"context"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"io"
 	"log/slog"
 	"os"
@@ -11,18 +11,18 @@ import (
 )
 
 type StdInRoutine struct {
-	pipe interpreter.Pipe
+	pipe pipeline.Pipe
 }
 
 func NewStdInRoutine() *StdInRoutine {
 	return &StdInRoutine{}
 }
 
-func (p *StdInRoutine) Pipe(pipe interpreter.Pipe) {
+func (p *StdInRoutine) Pipe(pipe pipeline.Pipe) {
 	p.pipe = pipe
 }
 
-func (p *StdInRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (p *StdInRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	w := &stdinWriter{pipe: pipe}
 
 	for {
@@ -38,11 +38,11 @@ func (p *StdInRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 }
 
 type stdinWriter struct {
-	pipe interpreter.Pipe
+	pipe pipeline.Pipe
 }
 
 func (p *stdinWriter) Write(data []byte) (n int, err error) {
-	msg := interpreter.Msg{
+	msg := pipeline.Msg{
 		ID:   "",
 		Data: data,
 	}
@@ -56,7 +56,7 @@ func NewStdOutRoutine() *StdOutRoutine {
 	return &StdOutRoutine{}
 }
 
-func (p *StdOutRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (p *StdOutRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	for {
 		select {
 		case <-ctx.Done():

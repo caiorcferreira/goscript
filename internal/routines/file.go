@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -77,7 +77,7 @@ type FileRoutine struct {
 	codec Codec
 }
 
-func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (f *FileRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	switch f.mode {
 	case modeRead:
 		return f.read(ctx, pipe)
@@ -88,7 +88,7 @@ func (f *FileRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
 	return errors.New("invalid file mode")
 }
 
-func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
+func (f *FileRoutine) read(ctx context.Context, pipe pipeline.Pipe) error {
 	slog.Info("reading file", "path", f.path)
 	defer func() {
 		slog.Info("finished reading file", "path", f.path)
@@ -111,7 +111,7 @@ func (f *FileRoutine) read(ctx context.Context, pipe interpreter.Pipe) error {
 	return nil
 }
 
-func (f *FileRoutine) write(ctx context.Context, pipe interpreter.Pipe) error {
+func (f *FileRoutine) write(ctx context.Context, pipe pipeline.Pipe) error {
 	slog.Info("writing file", "path", f.path)
 	defer func() {
 		slog.Info("finished writing file", "path", f.path)

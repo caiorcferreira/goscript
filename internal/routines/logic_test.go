@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x * 2
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 5)
 
@@ -67,7 +67,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return fmt.Sprintf("number_%d", x)
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 3)
 
@@ -112,7 +112,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 0)
 
@@ -154,7 +154,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 		stopAfter := 3
@@ -205,10 +205,10 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x * 2
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		// Mix different types - ints should be transformed, others passed through
-		mixedData := []interpreter.Msg{
+		mixedData := []pipeline.Msg{
 			{ID: "", Data: 1},
 			{ID: "", Data: "string"},
 			{ID: "", Data: 2},
@@ -228,7 +228,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -249,7 +249,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		wg.Wait()
 
 		// Integers should be transformed, non-integers passed through unchanged
-		expectedResults := []interpreter.Msg{
+		expectedResults := []pipeline.Msg{
 			{ID: "", Data: 2},
 			{ID: "", Data: "string"},
 			{ID: "", Data: 4},
@@ -268,10 +268,10 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x * 2
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		// Only non-int types - all should be passed through unchanged
-		nonIntData := []interpreter.Msg{
+		nonIntData := []pipeline.Msg{
 			{ID: "", Data: "hello"},
 			{ID: "", Data: 3.14},
 			{ID: "", Data: true},
@@ -288,7 +288,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		var results []interpreter.Msg
+		var results []pipeline.Msg
 
 		go func() {
 			defer wg.Done()
@@ -318,7 +318,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 2)
 
@@ -370,7 +370,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x * x
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(5, 1)
 
@@ -413,7 +413,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x + 1
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 10)
 
@@ -471,7 +471,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			}
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		testData := generateTestMsgs(1, 4)
 
@@ -521,7 +521,7 @@ func TestTransformRoutine_Run(t *testing.T) {
 			return x * 2
 		})
 
-		pipe := interpreter.NewChanPipe()
+		pipe := pipeline.NewChanPipe()
 
 		numMessages := 100
 		testData := generateTestMsgs(1, numMessages)

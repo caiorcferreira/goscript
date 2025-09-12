@@ -2,28 +2,28 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/interpreter"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"sync"
 )
 
 type ParallelRoutine struct {
-	routine        interpreter.Routine
+	routine        pipeline.Routine
 	maxConcurrency int
 }
 
-func Parallel(r interpreter.Routine, maxConcurrency int) ParallelRoutine {
+func Parallel(r pipeline.Routine, maxConcurrency int) ParallelRoutine {
 	return ParallelRoutine{
 		routine:        r,
 		maxConcurrency: maxConcurrency,
 	}
 }
 
-func (p ParallelRoutine) Run(ctx context.Context, pipe interpreter.Pipe) error {
+func (p ParallelRoutine) Run(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
-	subpipes := make([]*interpreter.ChannelPipe, p.maxConcurrency)
+	subpipes := make([]*pipeline.ChannelPipe, p.maxConcurrency)
 	for i := 0; i < p.maxConcurrency; i++ {
-		subpipes[i] = interpreter.NewChanPipe()
+		subpipes[i] = pipeline.NewChanPipe()
 	}
 
 	var wg sync.WaitGroup
