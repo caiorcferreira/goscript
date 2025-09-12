@@ -26,20 +26,12 @@ type WriteCodec interface {
 	Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error
 }
 
-// Codec defines the interface for parsing file content into messages
-// Now writes directly to a Pipe and supports context
-// Deprecated: Use ReadCodec instead
-type Codec interface {
-	// Parse reads from the reader and writes messages to the pipe
-	Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error
-}
-
 // LineCodec parses file content line by line
 type LineCodec struct{}
 
-// Ensure LineCodec implements both interfaces
+// Ensure LineCodec implements all interfaces
 var _ ReadCodec = (*LineCodec)(nil)
-var _ Codec = (*LineCodec)(nil)
+var _ WriteCodec = (*LineCodec)(nil)
 
 func NewLineCodec() *LineCodec {
 	return &LineCodec{}
@@ -74,15 +66,42 @@ func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 	return nil
 }
 
+// Encode implements WriteCodec interface for LineCodec
+func (c *LineCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case string:
+				if _, err := writer.Write([]byte(v + "\n")); err != nil {
+					return err
+				}
+			case []byte:
+				if _, err := writer.Write(v); err != nil {
+					return err
+				}
+				// Note: Other types are ignored to maintain backward compatibility
+				// The original implementation only handled strings and []byte
+			}
+		}
+	}
+
+	return nil
+}
+
 // CSVCodec parses CSV file content
 type CSVCodec struct {
 	Separator rune
 	Comment   rune
 }
 
-// Ensure CSVCodec implements both interfaces
+// Ensure CSVCodec implements all interfaces
 var _ ReadCodec = (*CSVCodec)(nil)
-var _ Codec = (*CSVCodec)(nil)
+var _ WriteCodec = (*CSVCodec)(nil)
 
 func NewCSVCodec() *CSVCodec {
 	return &CSVCodec{
@@ -133,6 +152,43 @@ func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pi
 	return nil
 }
 
+// Encode implements WriteCodec interface for CSVCodec
+func (c *CSVCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	csvWriter := csv.NewWriter(writer)
+	csvWriter.Comma = c.Separator
+	defer csvWriter.Flush()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case []string:
+				if err := csvWriter.Write(v); err != nil {
+					return err
+				}
+			case string:
+				// Split string by separator and write as CSV record
+				record := []string{v}
+				if err := csvWriter.Write(record); err != nil {
+					return err
+				}
+			default:
+				// Convert to string and write as single field
+				record := []string{fmt.Sprintf("%v", v)}
+				if err := csvWriter.Write(record); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // JSONCodec parses JSON file content
 // Supports both single JSON objects and JSON arrays
 type JSONCodec struct {
@@ -141,7 +197,7 @@ type JSONCodec struct {
 	JSONArray bool
 }
 
-// Ensure JSONCodec implements both interfaces
+// Ensure JSONCodec implements all interfaces
 var _ ReadCodec = (*JSONCodec)(nil)
 var _ WriteCodec = (*JSONCodec)(nil)
 
@@ -286,15 +342,82 @@ func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe p
 	return nil
 }
 
+// Encode implements WriteCodec interface for JSONCodec
+func (c *JSONCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	if c.JSONLines {
+		return c.encodeJSONLines(ctx, pipe, writer)
+	}
+
+	if c.JSONArray {
+		return c.encodeJSONArray(ctx, pipe, writer)
+	}
+
+	return c.encodeJSON(ctx, pipe, writer)
+}
+
+func (c *JSONCodec) encodeJSON(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	encoder := json.NewEncoder(writer)
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			if err := encoder.Encode(msg.Data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *JSONCodec) encodeJSONLines(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	encoder := json.NewEncoder(writer)
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			if err := encoder.Encode(msg.Data); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (c *JSONCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	var messages []any
+
+	// Collect all messages first
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			messages = append(messages, msg.Data)
+		}
+	}
+
+	// Write as JSON array
+	encoder := json.NewEncoder(writer)
+	return encoder.Encode(messages)
+}
+
 // BlobCodec returns the entire file content as a single message
 type BlobCodec struct {
 	// AsString when true, returns content as string, otherwise as []byte
 	AsString bool
 }
 
-// Ensure BlobCodec implements both interfaces
+// Ensure BlobCodec implements all interfaces
 var _ ReadCodec = (*BlobCodec)(nil)
-var _ Codec = (*BlobCodec)(nil)
+var _ WriteCodec = (*BlobCodec)(nil)
 
 func NewBlobCodec() *BlobCodec {
 	return &BlobCodec{
@@ -336,6 +459,37 @@ func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 	case pipe.Out() <- msg:
 	case <-ctx.Done():
 		return nil
+	}
+
+	return nil
+}
+
+// Encode implements WriteCodec interface for BlobCodec
+func (c *BlobCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+	defer pipe.Close()
+
+	for msg := range pipe.In() {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			switch v := msg.Data.(type) {
+			case string:
+				if _, err := writer.Write([]byte(v)); err != nil {
+					return err
+				}
+			case []byte:
+				if _, err := writer.Write(v); err != nil {
+					return err
+				}
+			default:
+				// Convert other types to string representation
+				str := fmt.Sprintf("%v", v)
+				if _, err := writer.Write([]byte(str)); err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	return nil

@@ -56,12 +56,12 @@ func (f FileRoutineBuilder) WithWriteCodec(codec WriteCodec) FileRoutineBuilder 
 	return f
 }
 
-// WithCodec sets the codec for reading files
-// Deprecated: Use WithReadCodec instead
-func (f FileRoutineBuilder) WithCodec(codec Codec) FileRoutineBuilder {
-	f.readCodec = codec
-	return f
-}
+//// WithCodec sets the codec for reading files
+//// Deprecated: Use WithReadCodec instead
+//func (f FileRoutineBuilder) WithCodec(codec Codec) FileRoutineBuilder {
+//	f.readCodec = codec
+//	return f
+//}
 
 // WithLineCodec sets the codec to LineCodec for line-by-line reading
 func (f FileRoutineBuilder) WithLineCodec() FileRoutineBuilder {
@@ -72,6 +72,12 @@ func (f FileRoutineBuilder) WithLineCodec() FileRoutineBuilder {
 // WithLineWriteCodec sets the codec to LineWriteCodec for line-by-line writing
 func (f FileRoutineBuilder) WithLineWriteCodec() FileRoutineBuilder {
 	f.writeCodec = NewLineWriteCodec()
+	return f
+}
+
+// WithLineCodecForWrite sets the codec to LineCodec for line-by-line writing
+func (f FileRoutineBuilder) WithLineCodecForWrite() FileRoutineBuilder {
+	f.writeCodec = NewLineCodec()
 	return f
 }
 
@@ -87,6 +93,12 @@ func (f FileRoutineBuilder) WithCSVWriteCodec() FileRoutineBuilder {
 	return f
 }
 
+// WithCSVCodecForWrite sets the codec to CSVCodec for CSV writing
+func (f FileRoutineBuilder) WithCSVCodecForWrite() FileRoutineBuilder {
+	f.writeCodec = NewCSVCodec()
+	return f
+}
+
 // WithJSONCodec sets the codec to JSONCodec for JSON parsing
 func (f FileRoutineBuilder) WithJSONCodec() FileRoutineBuilder {
 	f.readCodec = NewJSONCodec()
@@ -99,6 +111,12 @@ func (f FileRoutineBuilder) WithJSONWriteCodec() FileRoutineBuilder {
 	return f
 }
 
+// WithJSONCodecForWrite sets the codec to JSONCodec for JSON writing
+func (f FileRoutineBuilder) WithJSONCodecForWrite() FileRoutineBuilder {
+	f.writeCodec = NewJSONCodec()
+	return f
+}
+
 // WithBlobCodec sets the codec to BlobCodec for entire file reading
 func (f FileRoutineBuilder) WithBlobCodec() FileRoutineBuilder {
 	f.readCodec = NewBlobCodec()
@@ -108,6 +126,12 @@ func (f FileRoutineBuilder) WithBlobCodec() FileRoutineBuilder {
 // WithBlobWriteCodec sets the codec to BlobWriteCodec for raw data writing
 func (f FileRoutineBuilder) WithBlobWriteCodec() FileRoutineBuilder {
 	f.writeCodec = NewBlobWriteCodec()
+	return f
+}
+
+// WithBlobCodecForWrite sets the codec to BlobCodec for raw data writing
+func (f FileRoutineBuilder) WithBlobCodecForWrite() FileRoutineBuilder {
+	f.writeCodec = NewBlobCodec()
 	return f
 }
 
