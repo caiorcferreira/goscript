@@ -17,7 +17,6 @@ type BlobCodec struct {
 // Ensure BlobCodec implements all interfaces
 var _ ReadCodec = (*BlobCodec)(nil)
 var _ WriteCodec = (*BlobCodec)(nil)
-var _ Codec = (*BlobCodec)(nil)
 
 func NewBlobCodec() *BlobCodec {
 	return &BlobCodec{

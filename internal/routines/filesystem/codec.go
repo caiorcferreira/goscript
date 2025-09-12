@@ -19,11 +19,3 @@ type WriteCodec interface {
 	// Encode reads messages from the pipe and writes them to the writer
 	Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error
 }
-
-// Codec defines the interface for parsing file content into messages
-// Now writes directly to a Pipe and supports context
-// Deprecated: Use ReadCodec instead
-type Codec interface {
-	// Parse reads from the reader and writes messages to the pipe
-	Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error
-}

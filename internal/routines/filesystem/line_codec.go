@@ -14,7 +14,6 @@ type LineCodec struct{}
 // Ensure LineCodec implements all interfaces
 var _ ReadCodec = (*LineCodec)(nil)
 var _ WriteCodec = (*LineCodec)(nil)
-var _ Codec = (*LineCodec)(nil)
 
 func NewLineCodec() *LineCodec {
 	return &LineCodec{}

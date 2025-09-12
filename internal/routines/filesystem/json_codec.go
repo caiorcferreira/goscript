@@ -21,7 +21,6 @@ type JSONCodec struct {
 // Ensure JSONCodec implements all interfaces
 var _ ReadCodec = (*JSONCodec)(nil)
 var _ WriteCodec = (*JSONCodec)(nil)
-var _ Codec = (*JSONCodec)(nil)
 
 func NewJSONCodec() *JSONCodec {
 	return &JSONCodec{

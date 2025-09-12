@@ -3,16 +3,13 @@ package filesystem_test
 import (
 	"context"
 	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
-	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -615,43 +612,6 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		assert.Equal(t, testContent, results[0])
 	})
 
-	t.Run("uses custom codec", func(t *testing.T) {
-		tempDir := t.TempDir()
-		testFile := filepath.Join(tempDir, "test.txt")
-
-		testContent := "word1 word2 word3"
-		err := os.WriteFile(testFile, []byte(testContent), 0644)
-		require.NoError(t, err)
-
-		// Create a custom codec that splits on spaces
-		customCodec := &spaceCodec{}
-
-		pipe := pipeline.NewChanPipe()
-		fileRoutine := filesystem.File(testFile).WithCodec(customCodec).Read()
-
-		var results []string
-		var wg sync.WaitGroup
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-			for msg := range pipe.Out() {
-				results = append(results, msg.Data.(string))
-			}
-		}()
-
-		ctx := context.Background()
-		go func() {
-			err := fileRoutine.Run(ctx, pipe)
-			assert.NoError(t, err)
-		}()
-
-		wg.Wait()
-
-		expectedWords := []string{"word1", "word2", "word3"}
-		assert.Equal(t, expectedWords, results)
-	})
-
 	t.Run("handles codec parse error", func(t *testing.T) {
 		tempDir := t.TempDir()
 		testFile := filepath.Join(tempDir, "test.json")
@@ -669,31 +629,4 @@ func TestFileRoutine_WithCodec(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse file with codec")
 	})
-}
-
-// Custom codec for testing that splits content on spaces
-type spaceCodec struct{}
-
-func (c *spaceCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pipe) error {
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-
-	words := strings.Fields(string(data))
-
-	for _, word := range words {
-		msg := pipeline.Msg{
-			ID:   uuid.NewString(),
-			Data: word,
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case pipe.Out() <- msg:
-		}
-	}
-
-	return nil
 }

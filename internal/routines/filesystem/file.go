@@ -56,13 +56,6 @@ func (f FileRoutineBuilder) WithWriteCodec(codec WriteCodec) FileRoutineBuilder 
 	return f
 }
 
-// WithCodec sets the codec for reading files
-// Deprecated: Use WithReadCodec instead
-func (f FileRoutineBuilder) WithCodec(codec Codec) FileRoutineBuilder {
-	f.readCodec = codec
-	return f
-}
-
 // WithLineCodec sets the codec to LineCodec for line-by-line reading
 func (f FileRoutineBuilder) WithLineCodec() FileRoutineBuilder {
 	f.readCodec = NewLineCodec()

@@ -18,7 +18,6 @@ type CSVCodec struct {
 // Ensure CSVCodec implements all interfaces
 var _ ReadCodec = (*CSVCodec)(nil)
 var _ WriteCodec = (*CSVCodec)(nil)
-var _ Codec = (*CSVCodec)(nil)
 
 func NewCSVCodec() *CSVCodec {
 	return &CSVCodec{
