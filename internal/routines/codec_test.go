@@ -244,7 +244,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := interpreter.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec()
+		codec := routines.NewJSONCodec().WithJSONArrayMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -300,7 +300,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := interpreter.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithStreamMode(true)
+		codec := routines.NewJSONCodec().WithJSONLinesMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -326,7 +326,7 @@ func TestJSONCodec(t *testing.T) {
 		pipe := interpreter.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithStreamMode(true)
+		codec := routines.NewJSONCodec().WithJSONLinesMode()
 
 		go func() {
 			err := codec.Parse(ctx, reader, pipe)
@@ -364,7 +364,7 @@ invalid json line`
 		pipe := interpreter.NewChanPipe()
 		ctx := context.Background()
 
-		codec := routines.NewJSONCodec().WithStreamMode(true)
+		codec := routines.NewJSONCodec().WithJSONLinesMode()
 
 		err := codec.Parse(ctx, reader, pipe)
 

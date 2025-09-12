@@ -2,14 +2,13 @@ package routines
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"io"
-	"strings"
-
 	"github.com/caiorcferreira/goscript/internal/interpreter"
 	"github.com/google/uuid"
+	"io"
 )
 
 // Codec defines the interface for parsing file content into messages
@@ -115,16 +114,23 @@ func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe interpreter
 type JSONCodec struct {
 	// JSONLines when true, treats each line as a separate JSON object (JSONL format)
 	JSONLines bool
+	JSONArray bool
 }
 
 func NewJSONCodec() *JSONCodec {
 	return &JSONCodec{
 		JSONLines: false,
+		JSONArray: false,
 	}
 }
 
-func (c *JSONCodec) WithStreamMode(stream bool) *JSONCodec {
-	c.JSONLines = stream
+func (c *JSONCodec) WithJSONLinesMode() *JSONCodec {
+	c.JSONLines = true
+	return c
+}
+
+func (c *JSONCodec) WithJSONArrayMode() *JSONCodec {
+	c.JSONArray = true
 	return c
 }
 
@@ -135,40 +141,18 @@ func (c *JSONCodec) Parse(ctx context.Context, reader io.Reader, pipe interprete
 		return c.parseJSONLines(ctx, reader, pipe)
 	}
 
+	if c.JSONArray {
+		return c.parseJSONArray(ctx, reader, pipe)
+	}
+
 	return c.parseJSON(ctx, reader, pipe)
 }
 
 func (c *JSONCodec) parseJSON(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
-	data, err := io.ReadAll(reader)
-	if err != nil {
-		return err
-	}
+	decoder := json.NewDecoder(reader)
 
-	// Try to parse as array first
-	var arrayData []any
-	if err := json.Unmarshal(data, &arrayData); err == nil {
-		for _, item := range arrayData {
-			select {
-			case <-ctx.Done():
-				return nil
-			default:
-				msg := interpreter.Msg{
-					ID:   uuid.NewString(),
-					Data: item,
-				}
-				select {
-				case pipe.Out() <- msg:
-				case <-ctx.Done():
-					return nil
-				}
-			}
-		}
-		return nil
-	}
-
-	// If not an array, treat as single object
 	var objectData any
-	if err := json.Unmarshal(data, &objectData); err != nil {
+	if err := decoder.Decode(&objectData); err != nil {
 		return err
 	}
 
@@ -194,13 +178,13 @@ func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe i
 		case <-ctx.Done():
 			return nil
 		default:
-			line := strings.TrimSpace(scanner.Text())
-			if line == "" {
+			line := bytes.TrimSpace(scanner.Bytes())
+			if len(line) == 0 {
 				continue
 			}
 
 			var data any
-			if err := json.Unmarshal([]byte(line), &data); err != nil {
+			if err := json.Unmarshal(line, &data); err != nil {
 				return err
 			}
 
@@ -218,6 +202,36 @@ func (c *JSONCodec) parseJSONLines(ctx context.Context, reader io.Reader, pipe i
 
 	if err := scanner.Err(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe interpreter.Pipe) error {
+	decoder := json.NewDecoder(reader)
+
+	var arrayData []any
+	err := decoder.Decode(&arrayData)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range arrayData {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			msg := interpreter.Msg{
+				ID:   uuid.NewString(),
+				Data: item,
+			}
+
+			select {
+			case pipe.Out() <- msg:
+			case <-ctx.Done():
+				return nil
+			}
+		}
 	}
 
 	return nil
