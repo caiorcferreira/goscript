@@ -14,6 +14,7 @@ import (
 // JSONCodec parses JSON file content
 // Supports both single JSON objects and JSON arrays
 type JSONCodec struct {
+	//todo: create an enum for modes
 	// JSONLines when true, treats each line as a separate JSON object (JSONL format)
 	JSONLines bool
 	JSONArray bool

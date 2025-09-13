@@ -26,7 +26,7 @@ func New() *Script {
 
 	inPipe.Chain(outPipe)
 
-	p := pipeline.New2()
+	p := pipeline.New()
 
 	return &Script{
 		inPipe:       inPipe,
