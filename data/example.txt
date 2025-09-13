@@ -1,47 +1,10 @@
 Sugarburgh
-
 Goldfield
-
 North Dayham
-
 Sweetwich
-
 Hapview
-
 Southwold
-
 Broken Shield
 Satbury
 Poltragow
 Brickelwhyte
-
-
-writing file: data/output/parallel_13.txt
-reading file: data/example.txt
-file read: sent line: Sugarburgh
-file read: sent line: Goldfield
-file read: sent line: North Dayham
-file read: sent line: Sweetwich
-file read: sent line: Hapview
-file read: sent line: Southwold
-file read: sent line: Broken Shield
-transform: received message: Hapview
-transform: received message: Sugarburgh
-transform: received message: Goldfield
-transform: received message: Southwold
-transform: received message: North Dayham
-transform: received message: Sweetwich
-file read: sent line: Satbury
-file read: sent line: Poltragow
-file read: sent line: Brickelwhyte
-transform: received message: Poltragow
-transform: received message: Brickelwhyte
-finished reading file: data/example.txt
-file write: recv line: SUGARBURGH
-file write: recv line: GOLDFIELD
-file write: recv line: HAPVIEW
-file write: recv line: NORTH DAYHAM
-file write: recv line: POLTRAGOW
-file write: recv line: SOUTHWOLD
-file write: recv line: SWEETWICH
-file write: recv line: BRICKELWHYTE
