@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
+	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"log/slog"
 	"time"
 )
@@ -66,10 +67,35 @@ func (s *Script) Chain(routine pipeline.Routine) *Script {
 	return s
 }
 
-//func (s *Script) File(routine pipeline.Routine) *Script {
-//	s.Chain(routine)
-//	return s
-//}
+func (s *Script) JSONIn(path string) *Script {
+	s.In(filesystem.File(path).Read().WithJSONCodec())
+	return s
+}
+
+func (s *Script) JSONOut(path string) *Script {
+	s.Out(filesystem.File(path).Write().WithJSONCodec())
+	return s
+}
+
+func (s *Script) CSVIn(path string) *Script {
+	s.In(filesystem.File(path).Read().WithCSVCodec())
+	return s
+}
+
+func (s *Script) CSVOut(path string) *Script {
+	s.Out(filesystem.File(path).Write().WithCSVCodec())
+	return s
+}
+
+func (s *Script) FileIn(path string) *Script {
+	s.In(filesystem.File(path).Read())
+	return s
+}
+
+func (s *Script) FileOut(path string) *Script {
+	s.Out(filesystem.File(path).Write())
+	return s
+}
 
 func (s *Script) Parallel(r pipeline.Routine, maxConcurrency int) *Script {
 	s.Chain(routines.Parallel(r, maxConcurrency))
