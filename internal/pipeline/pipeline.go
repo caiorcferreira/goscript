@@ -58,16 +58,18 @@ func (s *Pipeline) Out(r Routine) *Pipeline {
 }
 
 func (s *Pipeline) Chain(r Routine) *Pipeline {
-	stepPipe := NewChanPipe()
-	previousPipe := s.previousPipe
+	//stepPipe := NewChanPipe()
+	//previousPipe := s.previousPipe
+	//
+	//previousPipe.Chain(stepPipe)
+	//s.previousPipe = stepPipe
+	//
+	//s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
+	//	pipe:    stepPipe,
+	//	routine: r,
+	//})
 
-	previousPipe.Chain(stepPipe)
-	s.previousPipe = stepPipe
-
-	s.middlewareRoutines = append(s.middlewareRoutines, memoizedPipeRoutine{
-		pipe:    stepPipe,
-		routine: r,
-	})
+	s.routines = append(s.routines, r)
 
 	return s
 }
@@ -77,8 +79,6 @@ func (s *Pipeline) Start(ctx context.Context, pipe Pipe) error {
 	defer cancel()
 
 	inPipe := NewChanPipe()
-	inPipe.SetInChan(pipe.In())
-
 	previousPipe := inPipe
 
 	for _, routine := range s.routines {
@@ -95,7 +95,37 @@ func (s *Pipeline) Start(ctx context.Context, pipe Pipe) error {
 		}()
 	}
 
-	previousPipe.SetOutChan(pipe.Out())
+	go func() {
+		defer inPipe.Close()
+
+		for msg := range pipe.In() {
+			slog.Debug("pipeline received message", "msg", msg)
+
+			select {
+			case <-ctx.Done():
+				return
+			case inPipe.Out() <- msg:
+			}
+		}
+	}()
+
+	go func() {
+		defer pipe.Close()
+
+		for msg := range previousPipe.Out() {
+			slog.Debug("pipeline forwarding message", "msg", msg)
+
+			select {
+			case <-ctx.Done():
+				return
+			case pipe.Out() <- msg:
+			}
+		}
+	}()
+
+	<-pipe.Done()
+
+	//previousPipe.SetOutChan(pipe.Out())
 
 	return nil
 }

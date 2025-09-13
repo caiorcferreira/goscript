@@ -7,6 +7,7 @@ import (
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
 	"io"
+	"log/slog"
 )
 
 // LineCodec parses file content line by line
@@ -34,6 +35,9 @@ func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 				ID:   uuid.NewString(),
 				Data: text,
 			}
+
+			slog.Debug("parsed line", "line", text, "msg_id", msg.ID)
+
 			select {
 			case pipe.Out() <- msg:
 			case <-ctx.Done():
@@ -59,6 +63,9 @@ func (c *LineCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Wr
 			return nil
 		default:
 			line := castDataToLine(msg.Data)
+
+			slog.Debug("encoded line", "line", line, "msg_id", msg.ID)
+
 			if _, err := writer.Write(line); err != nil {
 				return err
 			}

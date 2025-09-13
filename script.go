@@ -15,17 +15,15 @@ type Script struct {
 	outPipe       pipeline.Pipe
 	outputRoutine pipeline.Routine
 
-	pipelinePipe pipeline.Pipe
-	pipeline     *pipeline.Pipeline
+	hasPipeline bool
+	pipeline    *pipeline.Pipeline
 }
 
 func New() *Script {
 	inPipe := pipeline.NewChanPipe()
-	pipelinePipe := pipeline.NewChanPipe()
 	outPipe := pipeline.NewChanPipe()
 
-	inPipe.Chain(pipelinePipe)
-	pipelinePipe.Chain(outPipe)
+	inPipe.Chain(outPipe)
 
 	p := pipeline.New2()
 
@@ -36,8 +34,7 @@ func New() *Script {
 		outPipe:       outPipe,
 		outputRoutine: routines.NewStdOutRoutine(),
 
-		pipelinePipe: pipelinePipe,
-		pipeline:     p,
+		pipeline: p,
 	}
 }
 
@@ -64,23 +61,24 @@ func (s *Script) Out(r pipeline.Routine) *Script {
 }
 
 func (s *Script) Chain(routine pipeline.Routine) *Script {
+	s.hasPipeline = true
 	s.pipeline.Chain(routine)
 	return s
 }
 
-func (s *Script) File(routine pipeline.Routine) *Script {
-	s.pipeline.Chain(routine)
-	return s
-}
+//func (s *Script) File(routine pipeline.Routine) *Script {
+//	s.Chain(routine)
+//	return s
+//}
 
 func (s *Script) Parallel(r pipeline.Routine, maxConcurrency int) *Script {
-	s.pipeline.Chain(routines.Parallel(r, maxConcurrency))
+	s.Chain(routines.Parallel(r, maxConcurrency))
 
 	return s
 }
 
 func (s *Script) Debounce(delay time.Duration) *Script {
-	s.pipeline.Chain(routines.Debounce(delay))
+	s.Chain(routines.Debounce(delay))
 
 	return s
 }
@@ -89,18 +87,27 @@ func (s *Script) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	if s.hasPipeline {
+		slog.Debug("Starting pipeline...")
+
+		pipelinePipe := pipeline.NewChanPipe()
+
+		s.inPipe.Chain(pipelinePipe)
+		pipelinePipe.Chain(s.outPipe)
+
+		go func() {
+			err := s.pipeline.Start(ctx, pipelinePipe)
+			if err != nil {
+				slog.Error("pipeline routine error", "error", err)
+			}
+		}()
+	}
+
 	// start routines in reverse order: output, middlewares, input
 	go func() {
 		err := s.outputRoutine.Start(ctx, s.outPipe)
 		if err != nil {
 			slog.Error("output routine error", "error", err)
-		}
-	}()
-
-	go func() {
-		err := s.pipeline.Start(ctx, s.pipelinePipe)
-		if err != nil {
-			slog.Error("pipeline routine error", "error", err)
 		}
 	}()
 

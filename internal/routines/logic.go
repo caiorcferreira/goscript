@@ -17,6 +17,8 @@ func Transform[T, V any](f func(T) V) *TransformRoutine[T, V] {
 func (t *TransformRoutine[T, V]) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
+	slog.Debug("starting transform routine")
+
 	for msg := range pipe.In() {
 		slog.Debug("transform received message", "msg", msg)
 
@@ -32,6 +34,8 @@ func (t *TransformRoutine[T, V]) Start(ctx context.Context, pipe pipeline.Pipe) 
 			ID:   msg.ID,
 			Data: t.transform(val),
 		}
+
+		slog.Debug("transformed message", "msg", transformedMsg)
 
 		select {
 		case <-ctx.Done():
