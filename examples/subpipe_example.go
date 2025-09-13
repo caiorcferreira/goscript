@@ -3,23 +3,33 @@ package main
 import (
 	"context"
 	"github.com/caiorcferreira/goscript"
-	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
+	"github.com/caiorcferreira/goscript/internal/pipeline"
+	"github.com/caiorcferreira/goscript/internal/routines"
+	"log/slog"
+	"os"
+	"strings"
 )
 
 func main() {
 	println("This is an example function.")
 
+	// Set slog to debug level
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	slog.SetDefault(logger)
+
+	textFormatting := pipeline.New().
+		Chain(routines.Transform(strings.ToUpper)).
+		Chain(routines.Transform(func(t string) string {
+			return strings.ReplaceAll(t, " ", "_")
+		}))
+
 	script := goscript.New()
-
 	script.
-		In(filesystem.File("data/example.txt").Read()).
-		//Parallel(routines.Transform(strings.ToUpper), 3).
-		//Debounce(time.Millisecond * 100).
-		Out(filesystem.File("data/output/subpipe.txt").Write())
-
-	//Chain(routines.Parallel(routines.Transform(strings.ToUpper), 3)).
-	//Chain(routines.Debounce(5 * time.Second)).
-	//ExecForEach(goscript.HTTP().Get("https://httpbun.com/get?param={{.}}"))
+		FileIn("data/example.txt").
+		Chain(textFormatting).
+		FileOut("data/output/subpipe_5.txt")
 
 	ctx := context.Background()
 	err := script.Run(ctx)
