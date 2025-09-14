@@ -4,6 +4,8 @@ import (
 	"context"
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"io"
+	"path/filepath"
+	"strings"
 )
 
 // ReadCodec defines the interface for parsing file content into messages
@@ -18,4 +20,35 @@ type ReadCodec interface {
 type WriteCodec interface {
 	// Encode reads messages from the pipe and writes them to the writer
 	Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error
+}
+
+var extensionToCodec = map[string]any{
+	".json":  NewJSONCodec(),
+	".jsonl": NewJSONCodec().WithJSONLinesMode(),
+	".csv":   NewCSVCodec(),
+	".txt":   NewLineCodec(),
+}
+
+func buildReadCodec(path string) ReadCodec {
+	ext := filepath.Ext(path)
+	ext = strings.ToLower(ext)
+
+	codec, found := extensionToCodec[ext]
+	if !found {
+		return NewLineCodec()
+	}
+
+	return codec.(ReadCodec)
+}
+
+func buildWriteCodec(path string) WriteCodec {
+	ext := filepath.Ext(path)
+	ext = strings.ToLower(ext)
+
+	codec, found := extensionToCodec[ext]
+	if !found {
+		return NewLineCodec()
+	}
+
+	return codec.(WriteCodec)
 }

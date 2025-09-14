@@ -22,7 +22,7 @@ type FileRoutineBuilder struct {
 func (f FileRoutineBuilder) Read() *ReadFileRoutine {
 	readCodec := f.readCodec
 	if readCodec == nil {
-		readCodec = NewLineCodec()
+		readCodec = buildReadCodec(f.path)
 	}
 	return &ReadFileRoutine{path: f.path, readCodec: readCodec}
 }
@@ -30,7 +30,7 @@ func (f FileRoutineBuilder) Read() *ReadFileRoutine {
 func (f FileRoutineBuilder) Write() *WriteFileRoutine {
 	writeCodec := f.writeCodec
 	if writeCodec == nil {
-		writeCodec = NewLineCodec()
+		writeCodec = buildWriteCodec(f.path)
 	}
 	return &WriteFileRoutine{path: f.path, writeCodec: writeCodec}
 }

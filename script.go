@@ -116,7 +116,7 @@ func (s *Script) Chain(routine pipeline.Routine) *Script {
 //
 //	script.FileIn("input.txt").Chain(processLine).Run(ctx)
 func (s *Script) FileIn(path string) *Script {
-	s.In(filesystem.File(path).Read().WithLineCodec())
+	s.In(filesystem.File(path).Read())
 	return s
 }
 
@@ -131,7 +131,7 @@ func (s *Script) FileIn(path string) *Script {
 //
 //	script.FileIn("input.txt").Chain(processLine).FileOut("output.txt").Run(ctx)
 func (s *Script) FileOut(path string) *Script {
-	s.Out(filesystem.File(path).Write().WithLineCodec())
+	s.Out(filesystem.File(path).Write())
 	return s
 }
 
