@@ -5,7 +5,6 @@ import (
 	"log/slog"
 )
 
-// todo: implement Routine interface for Pipeline, so it can be nested with other Pipeline
 type Pipeline struct {
 	routines []Routine
 }
@@ -73,13 +72,4 @@ func (s *Pipeline) Start(ctx context.Context, pipe Pipe) error {
 	<-pipe.Done()
 
 	return nil
-}
-
-type memoizedPipeRoutine struct {
-	routine Routine
-	pipe    Pipe
-}
-
-func (m memoizedPipeRoutine) Run(ctx context.Context) error {
-	return m.routine.Start(ctx, m.pipe)
 }
