@@ -1,4 +1,4 @@
-package main
+package examples
 
 //func ExampleSubpipe() {
 //	println("This is an example function.")
