@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/google/uuid"
 	"io"
 	"log/slog"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
+	"github.com/google/uuid"
 )
 
 // LineCodec parses file content line by line

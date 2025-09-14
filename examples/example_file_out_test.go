@@ -2,10 +2,11 @@ package examples_test
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript"
-	"github.com/caiorcferreira/goscript/internal/routines"
 	"strings"
 	"time"
+
+	"github.com/caiorcferreira/goscript"
+	"github.com/caiorcferreira/goscript/internal/routines"
 )
 
 func ExampleScript_FileOut() {

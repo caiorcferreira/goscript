@@ -2,8 +2,9 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"sync"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 )
 
 type ParallelRoutine struct {
@@ -22,7 +23,7 @@ func (p ParallelRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	defer pipe.Close()
 
 	subpipes := make([]*pipeline.ChannelPipe, p.maxConcurrency)
-	for i := 0; i < p.maxConcurrency; i++ {
+	for i := range p.maxConcurrency {
 		subpipes[i] = pipeline.NewChanPipe()
 	}
 
@@ -88,7 +89,7 @@ func (p ParallelRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
 	}()
 
 	// start worker goroutines
-	for i := 0; i < p.maxConcurrency; i++ {
+	for i := range p.maxConcurrency {
 		go func() {
 			p.routine.Start(ctx, subpipes[i])
 		}()

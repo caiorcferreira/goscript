@@ -5,10 +5,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/google/uuid"
 	"io"
 	"log/slog"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
+	"github.com/google/uuid"
 )
 
 // JSONCodec parses JSON file content

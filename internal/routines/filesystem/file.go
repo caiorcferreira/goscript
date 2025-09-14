@@ -3,10 +3,11 @@ package filesystem
 import (
 	"context"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"log/slog"
 	"os"
 	"path/filepath"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 )
 
 func File(path string) FileRoutineBuilder {

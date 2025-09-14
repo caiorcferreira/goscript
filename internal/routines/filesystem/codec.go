@@ -2,10 +2,11 @@ package filesystem
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"io"
 	"path/filepath"
 	"strings"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 )
 
 // ReadCodec defines the interface for parsing file content into messages

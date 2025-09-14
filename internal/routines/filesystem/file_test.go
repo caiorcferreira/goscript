@@ -2,7 +2,6 @@ package filesystem_test
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"os"
 	"path/filepath"
 	"sync"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/caiorcferreira/goscript/internal/pipeline"
+	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

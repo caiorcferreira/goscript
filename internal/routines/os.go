@@ -3,11 +3,12 @@ package routines
 import (
 	"context"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"io"
 	"log/slog"
 	"os"
 	"time"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 )
 
 type StdInRoutine struct {

@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"io"
+
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
-	"io"
 )
 
 // CSVCodec parses CSV file content

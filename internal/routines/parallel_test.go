@@ -207,8 +207,8 @@ func TestParallelRoutine_Run(t *testing.T) {
 
 		wg.Wait()
 
-		//we can get less messages if a worker was processing when context was cancelled
-		//but at most we should get `stopAfter` messages
+		// we can get less messages if a worker was processing when context was cancelled
+		// but at most we should get `stopAfter` messages
 		require.LessOrEqual(t, slices.Max(results), stopAfter)
 	})
 

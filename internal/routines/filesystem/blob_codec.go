@@ -3,9 +3,10 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"io"
+
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
-	"io"
 )
 
 // BlobCodec returns the entire file content as a single message

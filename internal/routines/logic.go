@@ -2,10 +2,11 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/google/uuid"
 	"log/slog"
 	"reflect"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
+	"github.com/google/uuid"
 )
 
 type TransformRoutine[T, V any] struct {

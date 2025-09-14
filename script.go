@@ -3,11 +3,12 @@ package goscript
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines"
 	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
-	"log/slog"
-	"time"
 )
 
 // Script represents a pipeline-based data processing script with concurrent execution support.

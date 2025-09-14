@@ -2,8 +2,9 @@ package routines
 
 import (
 	"context"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"time"
+
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 )
 
 type DebounceRoutine struct {

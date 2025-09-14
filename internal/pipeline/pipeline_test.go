@@ -2,14 +2,15 @@ package pipeline_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/caiorcferreira/goscript/internal/pipeline"
-	"github.com/stretchr/testify/assert"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/caiorcferreira/goscript/internal/pipeline"
 	pipelinemocks "github.com/caiorcferreira/goscript/internal/pipeline/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
@@ -265,7 +266,7 @@ func TestPipeline_Start_RoutineError(t *testing.T) {
 		func(_ context.Context, pipe pipeline.Pipe) error {
 			defer pipe.Close()
 			// Simulate an error in the routine
-			return fmt.Errorf("test error")
+			return errors.New("test error")
 		},
 	)
 
@@ -410,7 +411,7 @@ func TestPipeline_Start_ConcurrentExecution(t *testing.T) {
 	numMsgs := 3
 	go func() {
 		defer close(inputPipe.In())
-		for i := 0; i < numMsgs; i++ {
+		for i := range numMsgs {
 			msg := pipeline.Msg{ID: string(rune(i + '1')), Data: "msg" + string(rune(i+'1'))}
 			inputPipe.In() <- msg
 		}
