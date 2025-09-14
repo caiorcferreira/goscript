@@ -190,25 +190,20 @@ John,30,"extra quote`
 func TestCSVCodec_Encode(t *testing.T) {
 	t.Run("encodes string slice messages", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
+		// Test multiple messages by calling Encode multiple times
 		messages := []pipeline.Msg{
 			{ID: "1", Data: []string{"name", "age", "city"}},
 			{ID: "2", Data: []string{"John", "30", "NYC"}},
 			{ID: "3", Data: []string{"Jane", "25", "LA"}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -220,7 +215,6 @@ func TestCSVCodec_Encode(t *testing.T) {
 
 	t.Run("encodes with custom separator", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec().WithSeparator(';')
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -228,16 +222,11 @@ func TestCSVCodec_Encode(t *testing.T) {
 			{ID: "2", Data: []string{"John", "30", "NYC"}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -247,65 +236,62 @@ func TestCSVCodec_Encode(t *testing.T) {
 
 	t.Run("encodes string messages as single field", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "hello"},
-			{ID: "2", Data: "world"},
+		msg := pipeline.Msg{
+			ID:   "1",
+			Data: "hello world",
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		result := buffer.String()
-		lines := strings.Split(strings.TrimSpace(result), "\n")
-		assert.Len(t, lines, 2)
-		assert.Equal(t, "hello", lines[0])
-		assert.Equal(t, "world", lines[1])
+		expected := "hello world\n"
+		assert.Equal(t, expected, buffer.String())
 	})
 
-	t.Run("encodes other types as string representation", func(t *testing.T) {
+	t.Run("encodes map messages with headers", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
+		codec.Headers = []string{"name", "age", "city"}
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: 123},
-			{ID: "2", Data: true},
-			{ID: "3", Data: 3.14},
+		msg := pipeline.Msg{
+			ID: "1",
+			Data: map[string]any{
+				"name": "John",
+				"age":  30,
+				"city": "NYC",
+			},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		result := buffer.String()
-		lines := strings.Split(strings.TrimSpace(result), "\n")
-		assert.Len(t, lines, 3)
-		assert.Equal(t, "123", lines[0])
-		assert.Equal(t, "true", lines[1])
-		assert.Equal(t, "3.14", lines[2])
+		expected := "John,30,NYC\n"
+		assert.Equal(t, expected, buffer.String())
+	})
+
+	t.Run("encodes any slice messages", func(t *testing.T) {
+		codec := filesystem.NewCSVCodec()
+		var buffer bytes.Buffer
+
+		msg := pipeline.Msg{
+			ID:   "1",
+			Data: []any{"John", 30, "NYC"},
+		}
+
+		ctx := context.Background()
+		err := codec.Encode(ctx, msg, &buffer)
+		assert.NoError(t, err)
+
+		expected := "John,30,NYC\n"
+		assert.Equal(t, expected, buffer.String())
 	})
 
 	t.Run("handles fields with commas and quotes", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -313,16 +299,11 @@ func TestCSVCodec_Encode(t *testing.T) {
 			{ID: "2", Data: []string{"Jane", "Product \"Manager\"", "25"}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -334,8 +315,6 @@ func TestCSVCodec_Encode(t *testing.T) {
 	t.Run("encodes multiple messages with different data types", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec().WithSeparator(';')
 		codec.Headers = []string{"id", "name", "value"}
-
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -346,16 +325,11 @@ func TestCSVCodec_Encode(t *testing.T) {
 			{ID: "5", Data: 42},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -372,8 +346,6 @@ func TestCSVCodec_Encode(t *testing.T) {
 	t.Run("converts map with headers and handles missing values", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
 		codec.Headers = []string{"name", "age", "city", "country"}
-
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -389,16 +361,11 @@ func TestCSVCodec_Encode(t *testing.T) {
 			}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -409,7 +376,6 @@ func TestCSVCodec_Encode(t *testing.T) {
 
 	t.Run("converts []any to string representations", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -421,16 +387,11 @@ func TestCSVCodec_Encode(t *testing.T) {
 			}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -443,17 +404,12 @@ func TestCSVCodec_Encode(t *testing.T) {
 
 	t.Run("WithSeparator configuration", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec().WithSeparator('|')
-
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		go func() {
-			pipe.In() <- pipeline.Msg{ID: "1", Data: []string{"a", "b", "c"}}
-			close(pipe.In())
-		}()
+		msg := pipeline.Msg{ID: "1", Data: []string{"a", "b", "c"}}
 
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
 		result := buffer.String()
@@ -484,16 +440,12 @@ func TestCSVCodec_Encode(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				pipe := pipeline.NewChanPipe()
 				var buffer bytes.Buffer
 
-				go func() {
-					pipe.In() <- pipeline.Msg{ID: "1", Data: tc.input}
-					close(pipe.In())
-				}()
+				msg := pipeline.Msg{ID: "1", Data: tc.input}
 
 				ctx := context.Background()
-				err := codec.Encode(ctx, pipe, &buffer)
+				err := codec.Encode(ctx, msg, &buffer)
 				assert.NoError(t, err)
 
 				result := buffer.String()
@@ -502,40 +454,17 @@ func TestCSVCodec_Encode(t *testing.T) {
 		}
 	})
 
-	t.Run("handles empty input pipe", func(t *testing.T) {
-		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		close(pipe.In())
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
-
-		assert.Equal(t, "", buffer.String())
-	})
-
 	t.Run("handles context cancellation", func(t *testing.T) {
 		codec := filesystem.NewCSVCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: []string{"name", "age"}},
-			{ID: "2", Data: []string{"John", "30"}},
-		}
+		msg := pipeline.Msg{ID: "1", Data: []string{"name", "age"}}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
 
-		go func() {
-			pipe.In() <- messages[0]
-			cancel() // Cancel after first message
-			pipe.In() <- messages[1]
-			close(pipe.In())
-		}()
-
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
+		// Should still encode the message since cancellation is checked during processing
 		assert.NoError(t, err)
 	})
 }

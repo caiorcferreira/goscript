@@ -232,9 +232,8 @@ func TestLineCodec_Parse(t *testing.T) {
 }
 
 func TestLineCodec_Encode(t *testing.T) {
-	t.Run("encodes string messages with newlines", func(t *testing.T) {
+	t.Run("encodes string messages as lines", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -243,16 +242,11 @@ func TestLineCodec_Encode(t *testing.T) {
 			{ID: "3", Data: "line3"},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		expected := "line1\nline2\nline3\n"
 		assert.Equal(t, expected, buffer.String())
@@ -260,7 +254,6 @@ func TestLineCodec_Encode(t *testing.T) {
 
 	t.Run("encodes byte slice messages directly", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -268,118 +261,68 @@ func TestLineCodec_Encode(t *testing.T) {
 			{ID: "2", Data: []byte("line2")},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		expected := "line1\nline2\n"
 		assert.Equal(t, expected, buffer.String())
 	})
 
-	t.Run("handles empty strings", func(t *testing.T) {
+	t.Run("encodes various data types as string representation", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
-			{ID: "1", Data: ""},
-			{ID: "2", Data: "non-empty"},
-			{ID: "3", Data: ""},
+			{ID: "1", Data: 42},
+			{ID: "2", Data: true},
+			{ID: "3", Data: 3.14},
+			{ID: "4", Data: struct{ Name string }{Name: "test"}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
-		expected := "\nnon-empty\n\n"
+		expected := "42\ntrue\n3.14\n{test}\n"
 		assert.Equal(t, expected, buffer.String())
-	})
-
-	t.Run("handles empty input pipe", func(t *testing.T) {
-		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		close(pipe.In())
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
-
-		assert.Equal(t, "", buffer.String())
 	})
 
 	t.Run("handles context cancellation", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "line1"},
-			{ID: "2", Data: "line2"},
-		}
+		msg := pipeline.Msg{ID: "1", Data: "test line"}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
 
-		go func() {
-			pipe.In() <- messages[0]
-			cancel() // Cancel after first message
-			pipe.In() <- messages[1]
-			close(pipe.In())
-		}()
-
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
+		// Should still encode the message since cancellation is checked during processing
 		assert.NoError(t, err)
-
-		// With immediate cancellation, context may prevent any processing
-		result := buffer.String()
-		// Either no data written or "line1" written before cancellation
-		assert.True(t, result == "" || strings.Contains(result, "line1"))
+		assert.Equal(t, "test line\n", buffer.String())
 	})
 
-	t.Run("handles unicode content", func(t *testing.T) {
+	t.Run("handles empty string", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "こんにちは"},
-			{ID: "2", Data: "🌍 Hello World"},
-			{ID: "3", Data: "Привет мир"},
-		}
-
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
+		msg := pipeline.Msg{ID: "1", Data: ""}
 
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		expected := "こんにちは\n🌍 Hello World\nПривет мир\n"
+		expected := "\n"
 		assert.Equal(t, expected, buffer.String())
 	})
 
-	t.Run("preserves existing newlines in strings", func(t *testing.T) {
+	t.Run("handles string with internal newlines", func(t *testing.T) {
 		codec := filesystem.NewLineCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -387,16 +330,11 @@ func TestLineCodec_Encode(t *testing.T) {
 			{ID: "2", Data: "normal line"},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		expected := "line with\ninternal newline\nnormal line\n"
 		assert.Equal(t, expected, buffer.String())

@@ -65,30 +65,20 @@ func (c *BlobCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 }
 
 // Encode implements WriteCodec interface for BlobCodec
-func (c *BlobCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	defer pipe.Close()
-
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			switch v := msg.Data.(type) {
-			case string:
-				if _, err := writer.Write([]byte(v)); err != nil {
-					return err
-				}
-			case []byte:
-				if _, err := writer.Write(v); err != nil {
-					return err
-				}
-			default:
-				// Convert other types to string representation
-				str := fmt.Sprintf("%v", v)
-				if _, err := writer.Write([]byte(str)); err != nil {
-					return err
-				}
-			}
+func (c *BlobCodec) Encode(ctx context.Context, msg pipeline.Msg, writer io.Writer) error {
+	switch v := msg.Data.(type) {
+	case string:
+		if _, err := writer.Write([]byte(v)); err != nil {
+			return err
+		}
+	case []byte:
+		if _, err := writer.Write(v); err != nil {
+			return err
+		}
+	default:
+		// Convert other types to string representation
+		if _, err := writer.Write([]byte(fmt.Sprintf("%v", v))); err != nil {
+			return err
 		}
 	}
 

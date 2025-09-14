@@ -55,22 +55,13 @@ func (c *LineCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.P
 }
 
 // Encode implements WriteCodec interface for LineCodec
-func (c *LineCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	defer pipe.Close()
+func (c *LineCodec) Encode(ctx context.Context, msg pipeline.Msg, writer io.Writer) error {
+	line := castDataToLine(msg.Data)
 
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			line := castDataToLine(msg.Data)
+	slog.Debug("encoded line", "line", line, "msg_id", msg.ID)
 
-			slog.Debug("encoded line", "line", line, "msg_id", msg.ID)
-
-			if _, err := writer.Write(line); err != nil {
-				return err
-			}
-		}
+	if _, err := writer.Write(line); err != nil {
+		return err
 	}
 
 	return nil

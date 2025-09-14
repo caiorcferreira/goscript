@@ -137,48 +137,15 @@ func TestBlobCodec_Parse(t *testing.T) {
 func TestBlobCodec_Encode(t *testing.T) {
 	t.Run("encodes string messages", func(t *testing.T) {
 		codec := filesystem.NewBlobCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "hello"},
-			{ID: "2", Data: "world"},
+		msg := pipeline.Msg{
+			ID:   "test-id",
+			Data: "hello world",
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
-
-		expected := "helloworld"
-		assert.Equal(t, expected, buffer.String())
-	})
-
-	t.Run("encodes byte slice messages", func(t *testing.T) {
-		codec := filesystem.NewBlobCodec()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		messages := []pipeline.Msg{
-			{ID: "1", Data: []byte("hello")},
-			{ID: "2", Data: []byte(" world")},
-		}
-
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
 		expected := "hello world"
@@ -187,70 +154,54 @@ func TestBlobCodec_Encode(t *testing.T) {
 
 	t.Run("encodes other types as string representation", func(t *testing.T) {
 		codec := filesystem.NewBlobCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: 123},
-			{ID: "2", Data: true},
-			{ID: "3", Data: 3.14},
+		msg := pipeline.Msg{
+			ID:   "test-id",
+			Data: 12345,
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		expected := "123true3.14"
+		expected := "12345"
 		assert.Equal(t, expected, buffer.String())
 	})
 
-	t.Run("handles empty input pipe", func(t *testing.T) {
+	t.Run("encodes byte slice data", func(t *testing.T) {
 		codec := filesystem.NewBlobCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		close(pipe.In())
+		msg := pipeline.Msg{
+			ID:   "test-id",
+			Data: []byte("hello world"),
+		}
 
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "", buffer.String())
+		expected := "hello world"
+		assert.Equal(t, expected, buffer.String())
 	})
 
 	t.Run("handles context cancellation", func(t *testing.T) {
 		codec := filesystem.NewBlobCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "hello"},
-			{ID: "2", Data: "world"},
+		msg := pipeline.Msg{
+			ID:   "test-id",
+			Data: "hello world",
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
 
-		go func() {
-			pipe.In() <- messages[0]
-			cancel() // Cancel after first message
-			pipe.In() <- messages[1]
-			close(pipe.In())
-		}()
-
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
+		// Should still encode the message since cancellation is checked during processing
 		assert.NoError(t, err)
-
-		// With immediate cancellation, context may prevent any processing
-		result := buffer.String()
-		// Either no data written or "hello" written before cancellation
-		assert.True(t, result == "" || strings.Contains(result, "hello"))
+		assert.Equal(t, "hello world", buffer.String())
 	})
 }
 

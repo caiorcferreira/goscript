@@ -5,11 +5,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io"
-	"log/slog"
-
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/google/uuid"
+	"io"
 )
 
 // JSONCodec parses JSON file content
@@ -167,74 +165,12 @@ func (c *JSONCodec) parseJSONArray(ctx context.Context, reader io.Reader, pipe p
 }
 
 // Encode implements WriteCodec interface for JSONCodec
-func (c *JSONCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	defer pipe.Close()
-
-	if c.JSONLines {
-		return c.encodeJSONLines(ctx, pipe, writer)
-	}
-
-	if c.JSONArray {
-		return c.encodeJSONArray(ctx, pipe, writer)
-	}
-
-	return c.encodeJSON(ctx, pipe, writer)
-}
-
-func (c *JSONCodec) encodeJSON(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
+func (c *JSONCodec) Encode(ctx context.Context, msg pipeline.Msg, writer io.Writer) error {
 	encoder := json.NewEncoder(writer)
 
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			if err := encoder.Encode(msg.Data); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (c *JSONCodec) encodeJSONLines(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	encoder := json.NewEncoder(writer)
-
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			if err := encoder.Encode(msg.Data); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (c *JSONCodec) encodeJSONArray(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	var messages []any
-
-	// Ensure we write the JSON array at the end
-	defer func() {
-		encoder := json.NewEncoder(writer)
-		err := encoder.Encode(messages)
-		if err != nil {
-			slog.Error("failed to encode JSON array", "error", err)
-		}
-	}()
-
-	// Collect all messages first
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			messages = append(messages, msg.Data)
-		}
+	// For regular JSON, just encode the single message
+	if err := encoder.Encode(msg.Data); err != nil {
+		return err
 	}
 
 	return nil

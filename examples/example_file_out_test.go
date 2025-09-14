@@ -18,7 +18,7 @@ func ExampleScript_FileOut() {
 		FileIn("../data/example.txt").
 		Parallel(routines.Transform(strings.ToUpper), 3).
 		Debounce(time.Millisecond * 10).
-		FileOut("../data/output/parallel_17.txt")
+		FileOut(`"../data/output/render/" + message + ".txt"`)
 
 	//Chain(routines.Parallel(routines.Transform(strings.ToUpper), 3)).
 	//Chain(routines.Debounce(5 * time.Second)).

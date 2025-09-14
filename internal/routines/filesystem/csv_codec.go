@@ -70,23 +70,14 @@ func (c *CSVCodec) Parse(ctx context.Context, reader io.Reader, pipe pipeline.Pi
 	return nil
 }
 
-func (c *CSVCodec) Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error {
-	defer pipe.Close()
-
+func (c *CSVCodec) Encode(ctx context.Context, msg pipeline.Msg, writer io.Writer) error {
 	csvWriter := csv.NewWriter(writer)
 	csvWriter.Comma = c.Separator
 	defer csvWriter.Flush()
 
-	for msg := range pipe.In() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			row := c.castDataToCSVRow(msg.Data)
-			if err := csvWriter.Write(row); err != nil {
-				return err
-			}
-		}
+	row := c.castDataToCSVRow(msg.Data)
+	if err := csvWriter.Write(row); err != nil {
+		return err
 	}
 
 	return nil

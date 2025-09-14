@@ -11,7 +11,6 @@ import (
 	"github.com/caiorcferreira/goscript/internal/pipeline"
 	"github.com/caiorcferreira/goscript/internal/routines/filesystem"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestJSONCodec_Parse(t *testing.T) {
@@ -214,35 +213,8 @@ func TestJSONCodec_Parse(t *testing.T) {
 }
 
 func TestJSONCodec_Encode(t *testing.T) {
-	t.Run("encodes as separate JSON objects by default", func(t *testing.T) {
-		codec := filesystem.NewJSONCodec()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		messages := []pipeline.Msg{
-			{ID: "1", Data: map[string]any{"name": "John", "age": 30}},
-			{ID: "2", Data: map[string]any{"name": "Jane", "age": 25}},
-		}
-
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
-
-		result := buffer.String()
-		assert.Contains(t, result, `{"age":30,"name":"John"}`)
-		assert.Contains(t, result, `{"age":25,"name":"Jane"}`)
-	})
-
-	t.Run("encodes as JSON lines", func(t *testing.T) {
+	t.Run("encodes messages as JSON lines by default", func(t *testing.T) {
 		codec := filesystem.NewJSONCodec().WithJSONLinesMode()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
 		messages := []pipeline.Msg{
@@ -250,16 +222,11 @@ func TestJSONCodec_Encode(t *testing.T) {
 			{ID: "2", Data: map[string]any{"name": "Jane", "age": 25}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
-		assert.NoError(t, err)
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
 
 		result := buffer.String()
 		lines := strings.Split(strings.TrimSpace(result), "\n")
@@ -269,117 +236,111 @@ func TestJSONCodec_Encode(t *testing.T) {
 	})
 
 	t.Run("encodes as JSON array", func(t *testing.T) {
-		codec := filesystem.NewJSONCodec().WithJSONArrayMode()
-		pipe := pipeline.NewChanPipe()
+		codec := filesystem.NewJSONCodec()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: map[string]any{"name": "John", "age": 30}},
-			{ID: "2", Data: map[string]any{"name": "Jane", "age": 25}},
+		msg := pipeline.Msg{
+			ID:   "1",
+			Data: []map[string]any{{"name": "John"}, {"name": "Jane"}},
 		}
 
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
-
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
 		result := buffer.String()
-		// Should be a valid JSON array
-		var decoded []map[string]any
-		err = json.Unmarshal([]byte(result), &decoded)
-		require.NoError(t, err)
-		assert.Len(t, decoded, 2)
-		assert.Equal(t, "John", decoded[0]["name"])
-		assert.Equal(t, "Jane", decoded[1]["name"])
+		var data []map[string]any
+		err = json.Unmarshal([]byte(result), &data)
+		assert.NoError(t, err)
+		assert.Len(t, data, 2)
+		assert.Equal(t, "John", data[0]["name"])
+		assert.Equal(t, "Jane", data[1]["name"])
 	})
 
-	t.Run("handles empty input pipe", func(t *testing.T) {
+	t.Run("encodes complex data structures", func(t *testing.T) {
 		codec := filesystem.NewJSONCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		close(pipe.In())
+		complexData := map[string]any{
+			"string": "hello",
+			"number": 42,
+			"bool":   true,
+			"array":  []int{1, 2, 3},
+			"nested": map[string]any{"key": "value"},
+		}
+
+		msg := pipeline.Msg{ID: "1", Data: complexData}
 
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
-		assert.Equal(t, "", buffer.String())
-	})
-
-	t.Run("handles empty input pipe in array mode", func(t *testing.T) {
-		codec := filesystem.NewJSONCodec().WithJSONArrayMode()
-		pipe := pipeline.NewChanPipe()
-		var buffer bytes.Buffer
-
-		close(pipe.In())
-
-		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		result := buffer.String()
+		var decoded map[string]any
+		err = json.Unmarshal([]byte(result), &decoded)
 		assert.NoError(t, err)
-
-		result := strings.TrimSpace(buffer.String())
-		// Empty array mode results in null when no messages
-		assert.Equal(t, "null", result)
+		assert.Equal(t, "hello", decoded["string"])
+		assert.Equal(t, float64(42), decoded["number"])
+		assert.Equal(t, true, decoded["bool"])
 	})
 
 	t.Run("handles context cancellation", func(t *testing.T) {
 		codec := filesystem.NewJSONCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: map[string]any{"name": "John"}},
-			{ID: "2", Data: map[string]any{"name": "Jane"}},
-		}
+		msg := pipeline.Msg{ID: "1", Data: map[string]string{"test": "data"}}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel immediately
 
-		go func() {
-			pipe.In() <- messages[0]
-			cancel() // Cancel after first message
-			pipe.In() <- messages[1]
-			close(pipe.In())
-		}()
-
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
+		// Should still encode the message since cancellation is checked during processing
 		assert.NoError(t, err)
 	})
 
-	t.Run("encodes various data types", func(t *testing.T) {
+	t.Run("encodes string messages as JSON strings", func(t *testing.T) {
 		codec := filesystem.NewJSONCodec()
-		pipe := pipeline.NewChanPipe()
 		var buffer bytes.Buffer
 
-		messages := []pipeline.Msg{
-			{ID: "1", Data: "string"},
-			{ID: "2", Data: 123},
-			{ID: "3", Data: true},
-			{ID: "4", Data: []int{1, 2, 3}},
-		}
-
-		go func() {
-			for _, msg := range messages {
-				pipe.In() <- msg
-			}
-			close(pipe.In())
-		}()
+		msg := pipeline.Msg{ID: "1", Data: "hello world"}
 
 		ctx := context.Background()
-		err := codec.Encode(ctx, pipe, &buffer)
+		err := codec.Encode(ctx, msg, &buffer)
 		assert.NoError(t, err)
 
 		result := buffer.String()
-		assert.Contains(t, result, `"string"`)
-		assert.Contains(t, result, `123`)
-		assert.Contains(t, result, `true`)
-		assert.Contains(t, result, `[1,2,3]`)
+		var decoded string
+		err = json.Unmarshal([]byte(result), &decoded)
+		assert.NoError(t, err)
+		assert.Equal(t, "hello world", decoded)
+	})
+
+	t.Run("encodes various data types", func(t *testing.T) {
+		codec := filesystem.NewJSONCodec().WithJSONLinesMode()
+		var buffer bytes.Buffer
+
+		messages := []pipeline.Msg{
+			{ID: "1", Data: 42},
+			{ID: "2", Data: true},
+			{ID: "3", Data: 3.14},
+			{ID: "4", Data: "string"},
+			{ID: "5", Data: []int{1, 2, 3}},
+		}
+
+		ctx := context.Background()
+		for _, msg := range messages {
+			err := codec.Encode(ctx, msg, &buffer)
+			assert.NoError(t, err)
+		}
+
+		result := buffer.String()
+		lines := strings.Split(strings.TrimSpace(result), "\n")
+		assert.Len(t, lines, 5)
+		assert.Equal(t, "42", lines[0])
+		assert.Equal(t, "true", lines[1])
+		assert.Equal(t, "3.14", lines[2])
+		assert.Equal(t, `"string"`, lines[3])
+		assert.Equal(t, "[1,2,3]", lines[4])
 	})
 }
 

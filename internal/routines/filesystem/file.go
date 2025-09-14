@@ -3,6 +3,7 @@ package filesystem
 import (
 	"context"
 	"fmt"
+	"github.com/caiorcferreira/goscript/internal/template"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -33,7 +34,12 @@ func (f FileRoutineBuilder) Write() *WriteFileRoutine {
 	if writeCodec == nil {
 		writeCodec = buildWriteCodec(f.path)
 	}
-	return &WriteFileRoutine{path: f.path, writeCodec: writeCodec}
+
+	return &WriteFileRoutine{
+		path:       f.path,
+		writeCodec: writeCodec,
+		renderer:   template.NewRenderer(),
+	}
 }
 
 const (
@@ -134,6 +140,7 @@ func (r *ReadFileRoutine) WithBlobCodec() *ReadFileRoutine {
 type WriteFileRoutine struct {
 	path       string
 	writeCodec WriteCodec
+	renderer   template.Renderer
 }
 
 func (w *WriteFileRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error {
@@ -142,17 +149,29 @@ func (w *WriteFileRoutine) Start(ctx context.Context, pipe pipeline.Pipe) error 
 		slog.Info("finished writing file", "path", w.path)
 	}()
 
-	file, err := openWritingFile(w.path, modeWrite)
-	if err != nil {
-		return fmt.Errorf("failed to open file for write: %w", err)
-	}
+	defer pipe.Close()
 
-	defer file.Close()
+	for msg := range pipe.In() {
+		filePath, err := template.RenderAs[string](w.renderer, w.path, msg.Data)
+		if err != nil {
+			slog.Error("failed to render file", "path", w.path, "error", err)
+			continue
+		}
 
-	// Use writeCodec to encode messages and write to file
-	err = w.writeCodec.Encode(ctx, pipe, file)
-	if err != nil {
-		return fmt.Errorf("failed to encode messages with codec: %w", err)
+		file, err := openWritingFile(filePath, modeWrite)
+		if err != nil {
+			return fmt.Errorf("failed to open file for write: %w", err)
+		}
+
+		err = w.writeCodec.Encode(ctx, msg, file)
+		file.Close() // Close file immediately after writing each message
+
+		if err != nil {
+			slog.Error("failed to encode message to file", "path", filePath, "error", err)
+			continue
+		}
+
+		slog.Debug("message written to file", "path", filePath)
 	}
 
 	return nil

@@ -17,10 +17,10 @@ type ReadCodec interface {
 }
 
 // WriteCodec defines the interface for encoding messages to file content
-// Reads messages from a pipe and writes them to a writer
+// Encodes a single message to a writer
 type WriteCodec interface {
-	// Encode reads messages from the pipe and writes them to the writer
-	Encode(ctx context.Context, pipe pipeline.Pipe, writer io.Writer) error
+	// Encode writes a single message to the writer
+	Encode(ctx context.Context, msg pipeline.Msg, writer io.Writer) error
 }
 
 var extensionToCodec = map[string]any{
